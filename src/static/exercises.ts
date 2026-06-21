@@ -1,0 +1,178 @@
+export type Exercise = {
+  id: string;
+  title: string;
+  description: string;
+  category: "Algorithms" | "Data Structures" | "Frontend" | "Backend" | "SQL";
+  difficulty: "Easy" | "Medium" | "Hard";
+  suggestedLanguage: string;
+  example: string;
+  hint: string;
+};
+
+export const EXERCISES: Exercise[] = [
+  {
+    id: "two-sum",
+    title: "Two Sum",
+    description:
+      "Cho mảng số nguyên `nums` và số `target`. Tìm 2 chỉ số sao cho giá trị tại đó cộng lại bằng target.",
+    category: "Algorithms",
+    difficulty: "Easy",
+    suggestedLanguage: "javascript",
+    example: "Input: nums = [2,7,11,15], target = 9\nOutput: [0,1]",
+    hint: "Dùng HashMap để lưu giá trị đã duyệt qua, tránh vòng lặp lồng nhau O(n²).",
+  },
+  {
+    id: "binary-search",
+    title: "Binary Search",
+    description: "Cài đặt thuật toán binary search trên mảng đã sắp xếp, trả về index hoặc -1.",
+    category: "Algorithms",
+    difficulty: "Easy",
+    suggestedLanguage: "javascript",
+    example: "Input: nums = [1,3,5,7,9], target = 5\nOutput: 2",
+    hint: "Theo dõi 2 con trỏ left/right, so sánh giá trị giữa với target để thu hẹp phạm vi.",
+  },
+  {
+    id: "merge-sort",
+    title: "Merge Sort",
+    description: "Cài đặt thuật toán merge sort để sắp xếp mảng số.",
+    category: "Algorithms",
+    difficulty: "Medium",
+    suggestedLanguage: "javascript",
+    example: "Input: [5,2,4,1,3]\nOutput: [1,2,3,4,5]",
+    hint: "Chia mảng làm 2 nửa đệ quy, sau đó merge 2 mảng đã sort lại với nhau.",
+  },
+  {
+    id: "bfs-dfs",
+    title: "BFS/DFS trên Graph",
+    description: "Duyệt graph bằng cả BFS và DFS, in ra thứ tự duyệt từ 1 node bắt đầu.",
+    category: "Algorithms",
+    difficulty: "Medium",
+    suggestedLanguage: "javascript",
+    example: "Graph: {1:[2,3], 2:[4], 3:[4], 4:[]}\nBFS từ 1: [1,2,3,4]",
+    hint: "BFS dùng Queue, DFS dùng Stack hoặc đệ quy. Nhớ đánh dấu node đã visit.",
+  },
+  {
+    id: "linked-list-reverse",
+    title: "Đảo ngược Linked List",
+    description: "Cài đặt Linked List và viết hàm đảo ngược thứ tự các node.",
+    category: "Data Structures",
+    difficulty: "Easy",
+    suggestedLanguage: "javascript",
+    example: "Input: 1->2->3->null\nOutput: 3->2->1->null",
+    hint: "Giữ 3 con trỏ: prev, current, next. Duyệt và đảo chiều `next` của từng node.",
+  },
+  {
+    id: "stack-queue",
+    title: "Cài đặt Stack bằng Queue",
+    description: "Implement một Stack (LIFO) chỉ dùng 2 Queue (FIFO).",
+    category: "Data Structures",
+    difficulty: "Medium",
+    suggestedLanguage: "javascript",
+    example: "push(1), push(2), pop() -> 2",
+    hint: "Mỗi lần push, đẩy phần tử mới vào rồi xoay toàn bộ queue để phần tử mới lên đầu.",
+  },
+  {
+    id: "binary-tree-traversal",
+    title: "Duyệt Binary Tree",
+    description: "Viết 3 hàm duyệt cây nhị phân: inorder, preorder, postorder.",
+    category: "Data Structures",
+    difficulty: "Easy",
+    suggestedLanguage: "javascript",
+    example: "Tree: [1,null,2,3]\nInorder: [1,3,2]",
+    hint: "Dùng đệ quy là cách đơn giản nhất, chú ý thứ tự gọi hàm trái/phải/gốc.",
+  },
+  {
+    id: "custom-debounce",
+    title: "Tự viết hàm debounce",
+    description: "Implement hàm `debounce(fn, delay)` từ đầu, không dùng thư viện.",
+    category: "Frontend",
+    difficulty: "Medium",
+    suggestedLanguage: "javascript",
+    example: "debounce(() => console.log('run'), 300) chỉ chạy 1 lần sau khi ngừng gọi 300ms",
+    hint: "Dùng setTimeout + clearTimeout, lưu timer ID ở closure bên ngoài.",
+  },
+  {
+    id: "custom-hook",
+    title: "Viết custom hook useDebounce",
+    description: "Tạo custom hook React `useDebounce(value, delay)` trả về giá trị đã debounce.",
+    category: "Frontend",
+    difficulty: "Medium",
+    suggestedLanguage: "typescript",
+    example: "const debounced = useDebounce(searchText, 500)",
+    hint: "Dùng useEffect + useState, set timeout trong effect và clear khi value đổi.",
+  },
+  {
+    id: "promise-chain",
+    title: "Viết lại Promise.all từ đầu",
+    description: "Implement hàm `myPromiseAll(promises)` hoạt động giống `Promise.all`.",
+    category: "Frontend",
+    difficulty: "Hard",
+    suggestedLanguage: "javascript",
+    example: "myPromiseAll([p1, p2, p3]) -> resolve khi tất cả resolve, reject ngay khi 1 cái reject",
+    hint: "Đếm số promise đã resolve, dùng index để giữ đúng thứ tự kết quả trả về.",
+  },
+  {
+    id: "rest-endpoint-design",
+    title: "Thiết kế REST endpoint cho Todo App",
+    description: "Thiết kế các endpoint CRUD cho 1 ứng dụng Todo, kèm status code phù hợp.",
+    category: "Backend",
+    difficulty: "Easy",
+    suggestedLanguage: "javascript",
+    example: "POST /todos, GET /todos/:id, PATCH /todos/:id, DELETE /todos/:id",
+    hint: "Nhớ phân biệt PUT (thay thế toàn bộ) và PATCH (cập nhật 1 phần).",
+  },
+  {
+    id: "auth-middleware",
+    title: "Viết Auth Middleware (Express-style)",
+    description: "Viết middleware xác thực JWT token, trả 401 nếu token không hợp lệ.",
+    category: "Backend",
+    difficulty: "Medium",
+    suggestedLanguage: "javascript",
+    example: "middleware(req, res, next) kiểm tra header Authorization",
+    hint: "Tách token từ header `Bearer <token>`, dùng try/catch khi verify JWT.",
+  },
+  {
+    id: "rate-limiter",
+    title: "Implement Rate Limiter cơ bản",
+    description: "Viết rate limiter giới hạn 5 request/phút cho mỗi user (in-memory).",
+    category: "Backend",
+    difficulty: "Hard",
+    suggestedLanguage: "javascript",
+    example: "Quá 5 request trong 60s -> trả 429 Too Many Requests",
+    hint: "Dùng Map lưu timestamp các request theo userId, lọc bỏ timestamp quá 60s mỗi lần check.",
+  },
+  {
+    id: "sql-join",
+    title: "JOIN nhiều bảng",
+    description:
+      "Viết query lấy danh sách đơn hàng kèm tên khách hàng và tên sản phẩm, từ 3 bảng orders/customers/products.",
+    category: "SQL",
+    difficulty: "Easy",
+    suggestedLanguage: "sql",
+    example: "SELECT ... FROM orders JOIN customers ... JOIN products ...",
+    hint: "Dùng INNER JOIN nếu chắc chắn có liên kết, LEFT JOIN nếu muốn giữ cả record không khớp.",
+  },
+  {
+    id: "sql-aggregation",
+    title: "Aggregation: Doanh thu theo tháng",
+    description: "Viết query tính tổng doanh thu theo từng tháng từ bảng orders.",
+    category: "SQL",
+    difficulty: "Medium",
+    suggestedLanguage: "sql",
+    example: "SELECT DATE_TRUNC('month', created_at), SUM(amount) FROM orders GROUP BY 1",
+    hint: "Dùng GROUP BY kết hợp hàm DATE_TRUNC hoặc EXTRACT để gom theo tháng.",
+  },
+  {
+    id: "sql-schema-design",
+    title: "Thiết kế Schema cho E-commerce",
+    description: "Thiết kế schema (bảng + quan hệ) cho hệ thống e-commerce cơ bản: users, products, orders.",
+    category: "SQL",
+    difficulty: "Medium",
+    suggestedLanguage: "sql",
+    example: "users, products, orders, order_items (bảng trung gian many-to-many)",
+    hint: "Quan hệ order-product là many-to-many, cần bảng trung gian order_items.",
+  },
+];
+
+export const CATEGORIES = ["Algorithms", "Data Structures", "Frontend", "Backend", "SQL"] as const;
+export const DIFFICULTIES = ["Easy", "Medium", "Hard"] as const;
