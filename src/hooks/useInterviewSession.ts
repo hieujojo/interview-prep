@@ -4,10 +4,21 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import type { AIReviewResult } from "@/hooks/useAIReview";
 
+export type TopicSelection = {
+  topic: string;
+  count: number;
+};
+
+export type SessionQuestion = {
+  content: string;
+  category: string;
+};
+
 export type SessionAnswer = {
-  question: string;
+  question: SessionQuestion;
   userAnswer: string;
   feedback: AIReviewResult | null;
+  usedHint?: boolean;
 };
 
 const DIFFICULTY_ORDER = ["Cơ bản", "Trung bình", "Nâng cao"] as const;
@@ -46,8 +57,8 @@ function pickQuestionsByDifficulty(
   return picked;
 }
 
-export function useInterviewSession(topic: string, count: number) {
-  const [questions, setQuestions] = useState<string[]>([]);
+export function useInterviewSession(selections: TopicSelection[]) {
+  const [questions, setQuestions] = useState<SessionQuestion[]>([]);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -56,27 +67,39 @@ export function useInterviewSession(topic: string, count: number) {
 
   useEffect(() => {
     async function fetchQuestions() {
+      if (!selections || selections.length === 0) {
+        setIsLoadingQuestions(false);
+        return;
+      }
       setIsLoadingQuestions(true);
       setLoadError(null);
 
       try {
-        const { data, error } = await supabase
-          .from("question_bank")
-          .select("content, difficulty, categories!inner(topic_id, topics!inner(name))")
-          .eq("categories.topics.name", topic);
+        const allSelected: SessionQuestion[] = [];
 
-        if (error) throw error;
+        for (const sel of selections) {
+          if (sel.count <= 0) continue;
+          const { data, error } = await supabase
+            .from("question_bank")
+            .select("content, difficulty, categories!inner(topic_id, topics!inner(name))")
+            .eq("categories.topics.name", sel.topic);
 
-        const pool = (data ?? []).map((q) => ({
-          content: q.content as string,
-          difficulty: q.difficulty as string,
-        }));
+          if (error) throw error;
 
-        const selected = pickQuestionsByDifficulty(pool, count);
+          const pool = (data ?? []).map((q: any) => ({
+            content: q.content as string,
+            difficulty: q.difficulty as string,
+          }));
 
-        setQuestions(selected);
+          const selectedContents = pickQuestionsByDifficulty(pool, sel.count);
+          allSelected.push(...selectedContents.map(c => ({ content: c, category: sel.topic })));
+        }
+
+        const mixedQuestions = shuffle(allSelected);
+
+        setQuestions(mixedQuestions);
         setAnswers(
-          selected.map((q) => ({ question: q, userAnswer: "", feedback: null }))
+          mixedQuestions.map((q) => ({ question: q, userAnswer: "", feedback: null, usedHint: false }))
         );
       } catch (err) {
         setLoadError(err instanceof Error ? err.message : "Lỗi tải câu hỏi.");
@@ -86,7 +109,8 @@ export function useInterviewSession(topic: string, count: number) {
     }
 
     fetchQuestions();
-  }, [topic, count]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(selections)]);
 
   const currentQuestion = questions[currentIndex];
   const isLastQuestion = currentIndex === questions.length - 1;
@@ -104,9 +128,15 @@ export function useInterviewSession(topic: string, count: number) {
     );
   };
 
+  const markHintUsed = () => {
+    setAnswers((prev) =>
+      prev.map((a, i) => (i === currentIndex ? { ...a, usedHint: true } : a))
+    );
+  };
+
   const goNext = () => setCurrentIndex((i) => i + 1);
 
-  // Save session logic (giữ nguyên như cũ)
+  // Save session logic
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
@@ -116,9 +146,11 @@ export function useInterviewSession(topic: string, count: number) {
     setSaveError(null);
 
     try {
+      const sessionTopic = selections.length > 1 ? selections.map(s => s.topic).join(", ") : selections[0]?.topic ?? "Unknown";
+
       const { data: sessionData, error: sessionError } = await supabase
         .from("sessions")
-        .insert({ type: "interview", topic })
+        .insert({ type: "interview", topic: sessionTopic })
         .select()
         .single();
 
@@ -128,7 +160,7 @@ export function useInterviewSession(topic: string, count: number) {
       for (const answer of answers) {
         const { data: questionData, error: questionError } = await supabase
           .from("questions")
-          .insert({ session_id: sessionId, content: answer.question, category: topic })
+          .insert({ session_id: sessionId, content: answer.question.content, category: answer.question.category })
           .select()
           .single();
 
@@ -143,6 +175,7 @@ export function useInterviewSession(topic: string, count: number) {
           user_answer: answer.userAnswer,
           ai_feedback: feedbackText,
           score: answer.feedback?.score ?? null,
+          used_hint: answer.usedHint ?? false
         });
 
         if (answerError) throw answerError;
@@ -167,6 +200,7 @@ export function useInterviewSession(topic: string, count: number) {
     answers,
     setUserAnswer,
     setFeedback,
+    markHintUsed,
     goNext,
     saveSession,
     isSaving,

@@ -1,7 +1,7 @@
 "use client";
 
+import { useState, useRef } from "react";
 import type { JDAnalysisResult } from "@/hooks/useJDAnalysis";
-
 type Props = {
   jdText: string;
   onChangeJdText: (text: string) => void;
@@ -34,6 +34,35 @@ export default function JDAnalyzerView({
   isSaved,
   saveError,
 }: Props) {
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/parse-file", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Lỗi đọc file");
+
+      onChangeJdText(data.text);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fadeInUp">
       {/* Header */}
@@ -54,9 +83,24 @@ export default function JDAnalyzerView({
         className="rounded-2xl p-5"
         style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
       >
-        <div className="flex items-center justify-between mb-3">
-          <label className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 gap-3">
+          <label className="text-sm font-semibold flex items-center gap-3" style={{ color: "var(--foreground)" }}>
             Nội dung Job Description
+            <input 
+              type="file" 
+              accept=".pdf,.docx,.doc" 
+              className="hidden" 
+              ref={fileInputRef} 
+              onChange={handleFileUpload} 
+            />
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors"
+              style={{ background: "var(--primary-bg)", color: "var(--primary)", border: "1px solid var(--primary-light)" }}
+            >
+              {isUploading ? "⏳ Đang đọc..." : "📁 Tải lên (PDF/DOCX)"}
+            </button>
           </label>
           <span className="text-xs" style={{ color: "var(--muted)" }}>
             {jdText.length} ký tự

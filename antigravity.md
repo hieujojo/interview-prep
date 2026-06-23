@@ -6,10 +6,10 @@
 4. **Track SQL Execution**: Mỗi lần AI cung cấp câu lệnh SQL cho user, BẮT BUỘC phải tự động ghi chú (note) vào danh sách "Các bảng đã tạo" dưới đây để tránh tạo trùng lặp.
 
 ## Các bảng (Tables) đã tạo trên Supabase:
-- `answers`
+- `answers` (Đã thêm cột `used_hint` BOOLEAN)
 - `categories`
 - `code_reviews`
-- `jd_analyses`
+- `jd_analyses` (Đã ALTER `session_id` → nullable; `questions_json` chứa levelReason, focusSkills, questions, exercises)
 - `question_bank`
 - `questions`
 - `sessions`
