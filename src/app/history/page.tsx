@@ -1,5 +1,9 @@
-import HistoryView from "@/components/history/HistoryView";
+import HistoryView from "@/components/dashboard/HistoryView";
 
 export default function HistoryPage() {
-  return <HistoryView />;
+  return (
+    <div className="p-6">
+      <HistoryView />
+    </div>
+  );
 }

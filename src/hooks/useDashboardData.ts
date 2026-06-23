@@ -16,15 +16,12 @@ export type DashboardData = {
   recentSessions: RecentSession[];
   averageScore: number | null;
   streakDays: number;
+  totalScore: number;
 };
 
 function calculateStreak(dates: string[]): number {
   if (dates.length === 0) return 0;
-
-  const uniqueDays = Array.from(
-    new Set(dates.map((d) => new Date(d).toDateString()))
-  ).map((d) => new Date(d));
-
+  const uniqueDays = Array.from(new Set(dates.map((d) => new Date(d).toDateString()))).map((d) => new Date(d));
   uniqueDays.sort((a, b) => b.getTime() - a.getTime());
 
   const today = new Date();
@@ -36,14 +33,12 @@ function calculateStreak(dates: string[]): number {
   for (const day of uniqueDays) {
     const dayStart = new Date(day);
     dayStart.setHours(0, 0, 0, 0);
-
     const diffDays = Math.round((cursor.getTime() - dayStart.getTime()) / 86400000);
 
     if (diffDays === 0) {
       streak += 1;
       cursor.setDate(cursor.getDate() - 1);
     } else if (diffDays === 1 && streak === 0) {
-      // hôm nay chưa luyện nhưng hôm qua có -> vẫn tính streak đang chạy
       streak += 1;
       cursor = new Date(dayStart);
       cursor.setDate(cursor.getDate() - 1);
@@ -51,7 +46,6 @@ function calculateStreak(dates: string[]): number {
       break;
     }
   }
-
   return streak;
 }
 
@@ -66,36 +60,57 @@ export function useDashboardData() {
       setError(null);
 
       try {
-        const { data: sessions, error: sessionsError } = await supabase
+        // 1. Fetch 5 recent sessions (luôn nhẹ và nhanh)
+        const { data: recentSessions, error: recentError } = await supabase
           .from("sessions")
           .select("id, type, topic, created_at")
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false })
+          .limit(5);
 
-        if (sessionsError) throw sessionsError;
+        if (recentError) throw recentError;
 
-        const { data: answers, error: answersError } = await supabase
-          .from("answers")
-          .select("score")
-          .not("score", "is", null);
+        // 2. Thử fetch dữ liệu tổng hợp từ bảng user_stats (cực nhanh)
+        const { data: statsData, error: statsError } = await supabase
+          .from("user_stats")
+          .select("*")
+          .limit(1)
+          .maybeSingle();
 
-        if (answersError) throw answersError;
+        if (!statsError && statsData) {
+          setData({
+            totalSessions: statsData.total_sessions,
+            topicsCovered: statsData.topics_covered,
+            recentSessions: recentSessions ?? [],
+            averageScore: statsData.average_score,
+            streakDays: statsData.streak_days,
+            totalScore: statsData.total_score,
+          });
+          return;
+        }
 
-        const topicsCovered = Array.from(
-          new Set((sessions ?? []).map((s) => s.topic).filter(Boolean))
-        ) as string[];
+        // 3. FALLBACK: Nếu bạn chưa chạy SQL tạo bảng user_stats, nó sẽ tự lùi về cách tính thủ công
+        const { data: allSessions } = await supabase.from("sessions").select("topic, created_at");
+        const { data: allAnswers } = await supabase.from("answers").select("score").not("score", "is", null);
 
-        const scores = (answers ?? []).map((a) => a.score as number);
-        const averageScore =
-          scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
-
-        const streakDays = calculateStreak((sessions ?? []).map((s) => s.created_at));
+        const topicsCovered = Array.from(new Set((allSessions ?? []).map((s) => s.topic).filter(Boolean))) as string[];
+        const scores = (allAnswers ?? []).map((a) => a.score as number);
+        const averageScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+        const streakDays = calculateStreak((allSessions ?? []).map((s) => s.created_at));
+        
+        const totalScore = Math.floor(
+          ((allSessions?.length ?? 0) * 10) + 
+          (streakDays * 20) + 
+          ((averageScore ?? 0) * 50) + 
+          (topicsCovered.length * 30)
+        );
 
         setData({
-          totalSessions: sessions?.length ?? 0,
+          totalSessions: allSessions?.length ?? 0,
           topicsCovered,
-          recentSessions: (sessions ?? []).slice(0, 5),
+          recentSessions: recentSessions ?? [],
           averageScore,
           streakDays,
+          totalScore,
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Lỗi tải dữ liệu.");

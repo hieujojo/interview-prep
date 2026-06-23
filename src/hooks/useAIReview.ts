@@ -22,7 +22,7 @@ export function useAIReview() {
     setError(null);
 
     try {
-      const res = await fetch("/api/interview/review", {
+      const res = await fetch("/api/interview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic, question, userAnswer }),

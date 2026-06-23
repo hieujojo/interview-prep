@@ -1,0 +1,17 @@
+# Project Rules
+
+1. **Database Persistence**: Mọi tính năng mới liên quan đến dữ liệu người dùng (lịch sử, kết quả, settings, lỗi sai, v.v...) BẮT BUỘC phải được lưu vào cơ sở dữ liệu Supabase.
+2. **No LocalStorage**: TUYỆT ĐỐI KHÔNG sử dụng `localStorage` hay `sessionStorage` cho việc lưu trữ dữ liệu vĩnh viễn hoặc dữ liệu cần phân tích.
+3. **Database Schema**: Khi có tính năng yêu cầu bảng (table) mới hoặc cột mới, phải cung cấp lệnh SQL để người dùng tự thực thi trên Supabase SQL Editor.
+4. **Track SQL Execution**: Mỗi lần AI cung cấp câu lệnh SQL cho user, BẮT BUỘC phải tự động ghi chú (note) vào danh sách "Các bảng đã tạo" dưới đây để tránh tạo trùng lặp.
+
+## Các bảng (Tables) đã tạo trên Supabase:
+- `answers`
+- `categories`
+- `code_reviews`
+- `jd_analyses`
+- `question_bank`
+- `questions`
+- `sessions`
+- `topics`
+- `user_stats`

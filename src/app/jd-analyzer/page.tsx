@@ -21,6 +21,9 @@ export default function JDAnalyzerPage() {
       isAnalyzing={isAnalyzing}
       error={error}
       result={result}
+      isSaving={false}
+      isSaved={false}
+      saveError={null}
     />
   );
 }
