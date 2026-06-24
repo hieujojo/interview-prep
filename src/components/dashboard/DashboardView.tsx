@@ -11,7 +11,7 @@ const MOTIVATIONAL_QUOTES = [
   "Mỗi câu hỏi bạn luyện hôm nay là một bước gần hơn đến offer mơ ước! 🌟",
   "Consistency beats talent. Luyện tập đều đặn là chìa khóa thành công! 🔑",
   "Bạn đang làm tốt hơn version hôm qua của mình! Keep going! 💪",
-  "Senior dev cũng từng là junior. Hãy tiếp tục học mỗi ngày! 🚀",
+  "Senior dev cũng từng là Intern. Hãy tiếp tục học mỗi ngày! 🚀",
 ];
 
 const TYPE_INFO: Record<string, { label: string; icon: string; color: string }> = {

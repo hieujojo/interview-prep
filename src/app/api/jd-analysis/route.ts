@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/utils/supabase/server";
 
 export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Chưa đăng nhập." }, { status: 401 });
+  }
+
   const { jdText } = await req.json();
 
   if (!jdText || jdText.trim().length < 50) {
@@ -97,6 +104,7 @@ Trả lời CHỈ bằng JSON theo đúng format sau, không thêm text nào kh�
   const { data: saved, error: saveError } = await supabase
     .from("jd_analyses")
     .insert({
+      user_id: user.id,
       jd_text: jdText,
       tech_stack: parsed.techStack ?? [],
       level: parsed.level ?? null,
@@ -116,17 +124,23 @@ Trả lời CHỈ bằng JSON theo đúng format sau, không thêm text nào kh�
 
   if (saveError) {
     console.error("Lỗi lưu jd_analyses:", JSON.stringify(saveError, null, 2));
-  } else {
-    console.log("Lưu thành công jd_analyses id:", saved?.id);
   }
 
   return NextResponse.json({ ...parsed, savedId: saved?.id ?? null });
 }
 
 export async function GET() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json(null);
+  }
+
   const { data, error } = await supabase
     .from("jd_analyses")
     .select("*")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(1)
     .single();
@@ -135,7 +149,6 @@ export async function GET() {
     return NextResponse.json(null);
   }
 
-  // Format lại giống lúc POST trả về
   return NextResponse.json({
     jdText: data.jd_text,
     techStack: data.tech_stack,
