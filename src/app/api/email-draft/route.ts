@@ -7,9 +7,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Job Description quá ngắn." }, { status: 400 });
   }
 
-  const systemPrompt = `Bạn là một career coach người Việt chuyên giúp ứng viên IT viết email xin việc chuyên nghiệp, ấn tượng và phù hợp với từng vị trí cụ thể.
+  const systemPrompt = `Bạn là một career coach chuyên giúp ứng viên IT viết email xin việc chuyên nghiệp, ấn tượng và phù hợp với từng vị trí cụ thể.
 
-QUAN TRỌNG: Toàn bộ email phải bằng tiếng Việt có đầy đủ dấu và chuyên nghiệp. Giữ tiếng Anh cho thuật ngữ kỹ thuật.
+QUAN TRỌNG: Bạn cần sinh ra CẢ HAI phiên bản: Tiếng Việt (có dấu đầy đủ) và Tiếng Anh (chuẩn ngữ pháp, tự nhiên).
 
 Nguyên tắc viết email:
 - Chủ đề (subject) ngắn gọn, hấp dẫn, đề cập vị trí và điểm nổi bật
@@ -21,12 +21,15 @@ Nguyên tắc viết email:
 
 Trả lời CHỈ bằng JSON theo đúng format sau:
 {
-  "subject": "tiêu đề email",
-  "body": "nội dung email đầy đủ với xuống dòng bằng \\n",
+  "subject": "tiêu đề email tiếng Việt",
+  "body": "nội dung email tiếng Việt đầy đủ với xuống dòng bằng \\n",
+  "alternativeSubjects": ["tiêu đề VN thay thế 1", "tiêu đề VN thay thế 2"],
+  "subjectEn": "tiêu đề email tiếng Anh",
+  "bodyEn": "nội dung email tiếng Anh đầy đủ với xuống dòng bằng \\n",
+  "alternativeSubjectsEn": ["tiêu đề EN thay thế 1", "tiêu đề EN thay thế 2"],
   "tips": [
-    "lời khuyên để cải thiện email này hoặc buổi phỏng vấn"
-  ],
-  "alternativeSubjects": ["tiêu đề thay thế 1", "tiêu đề thay thế 2"]
+    "lời khuyên để cải thiện email này hoặc buổi phỏng vấn (tiếng Việt)"
+  ]
 }`;
 
   const userContent = [

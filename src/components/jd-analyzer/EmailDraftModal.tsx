@@ -35,7 +35,9 @@ export default function EmailDraftModal({
   const [recipientName, setRecipientName] = useState("");
   const [useCV, setUseCV] = useState(false);
   const [copied, setCopied] = useState<"subject" | "body" | "full" | null>(null);
-  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+  const [language, setLanguage] = useState<"vi" | "en">("vi");
+  const [selectedSubjectVi, setSelectedSubjectVi] = useState<string | null>(null);
+  const [selectedSubjectEn, setSelectedSubjectEn] = useState<string | null>(null);
 
   const handleGenerate = () => {
     const cvText = useCV ? savedCvText : undefined;
@@ -54,9 +56,15 @@ export default function EmailDraftModal({
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const activeSubject = selectedSubject ?? draft?.subject ?? "";
+  const activeSubject = language === "vi"
+    ? (selectedSubjectVi ?? draft?.subject ?? "")
+    : (selectedSubjectEn ?? draft?.subjectEn ?? "");
+    
+  const currentBody = language === "vi" ? draft?.body : draft?.bodyEn;
+  const currentAlternatives = language === "vi" ? draft?.alternativeSubjects : draft?.alternativeSubjectsEn;
+
   const fullEmail = draft
-    ? `Tiêu đề: ${activeSubject}\n\n${draft.body}`
+    ? `Tiêu đề: ${activeSubject}\n\n${currentBody}`
     : "";
 
   return (
@@ -66,7 +74,7 @@ export default function EmailDraftModal({
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl animate-scaleIn"
+        className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl animate-scaleIn flex flex-col"
         style={{ background: "var(--surface)", border: "1px solid var(--border-bright)" }}
       >
         {/* Header */}
@@ -91,10 +99,12 @@ export default function EmailDraftModal({
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
-          {/* Options */}
-          {!draft && (
-            <div className="space-y-3">
+        <div className="p-5 flex-1 overflow-hidden">
+          <div className="grid lg:grid-cols-12 gap-6 h-full">
+            {/* Left: Options */}
+            <div className="lg:col-span-4 space-y-4">
+              <div className="space-y-3 p-4 rounded-xl" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                <h3 className="text-sm font-bold mb-3" style={{ color: "var(--foreground)" }}>Thông tin thêm</h3>
               <div className="grid sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--muted)" }}>
@@ -165,10 +175,12 @@ export default function EmailDraftModal({
                 </p>
               )}
 
+              </div>
+
               <button
                 onClick={handleGenerate}
                 disabled={isGenerating}
-                className="btn-gradient w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold"
+                className="btn-gradient w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold shadow-md hover:opacity-90 transition-opacity"
               >
                 {isGenerating ? (
                   <>
@@ -176,16 +188,59 @@ export default function EmailDraftModal({
                       style={{ animation: "spin 0.8s linear infinite" }} />
                     Đang viết email...
                   </>
+                ) : draft ? (
+                  "🔄 Sinh lại Email"
                 ) : (
                   "✨ Sinh Email"
                 )}
               </button>
             </div>
-          )}
 
-          {/* Result */}
+            {/* Right: Result */}
+            <div className="lg:col-span-8 flex flex-col h-full">
+              {!draft && !isGenerating && (
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-8 rounded-xl" style={{ background: "var(--surface-2)", border: "1px dashed var(--border)" }}>
+                  <span className="text-4xl mb-3">✉️</span>
+                  <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Chưa có email nào</p>
+                  <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>Điền thông tin bên trái và nhấn "Sinh Email" để AI tự động soạn thảo cho bạn.</p>
+                </div>
+              )}
+              {isGenerating && (
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-8 rounded-xl" style={{ background: "var(--surface-2)", border: "1px dashed var(--border)" }}>
+                  <span className="w-8 h-8 border-4 border-purple-500/30 border-t-purple-500 rounded-full mb-3" style={{ animation: "spin 1s linear infinite" }} />
+                  <p className="text-sm font-semibold" style={{ color: "var(--primary)" }}>AI đang soạn email...</p>
+                </div>
+              )}
           {draft && (
             <div className="space-y-4 animate-fadeInUp">
+              {/* Language Toggle */}
+              <div className="flex bg-surface-2 p-1 rounded-xl" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+                <button
+                  onClick={() => setLanguage("vi")}
+                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
+                    language === "vi" ? "bg-white shadow-sm text-purple-600" : "text-muted hover:text-foreground"
+                  }`}
+                  style={{
+                    background: language === "vi" ? "var(--surface)" : "transparent",
+                    color: language === "vi" ? "var(--primary)" : "var(--muted)",
+                  }}
+                >
+                  🇻🇳 Tiếng Việt
+                </button>
+                <button
+                  onClick={() => setLanguage("en")}
+                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
+                    language === "en" ? "bg-white shadow-sm text-purple-600" : "text-muted hover:text-foreground"
+                  }`}
+                  style={{
+                    background: language === "en" ? "var(--surface)" : "transparent",
+                    color: language === "en" ? "var(--primary)" : "var(--muted)",
+                  }}
+                >
+                  🇬🇧 Tiếng Anh
+                </button>
+              </div>
+
               {/* Subject */}
               <div className="rounded-xl p-4" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
                 <div className="flex items-center justify-between mb-2">
@@ -205,24 +260,27 @@ export default function EmailDraftModal({
                   {activeSubject}
                 </p>
 
-                {draft.alternativeSubjects?.length > 0 && (
+                {currentAlternatives && currentAlternatives.length > 0 && (
                   <div className="mt-3">
                     <p className="text-xs mb-2" style={{ color: "var(--muted)" }}>🔄 Tiêu đề thay thế:</p>
                     <div className="space-y-1.5">
-                      {draft.alternativeSubjects.map((s, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setSelectedSubject(s)}
-                          className="w-full text-left text-xs px-3 py-2 rounded-lg transition-all"
-                          style={{
-                            background: selectedSubject === s ? "rgba(139,92,246,0.12)" : "var(--surface)",
-                            border: `1px solid ${selectedSubject === s ? "rgba(139,92,246,0.4)" : "var(--border)"}`,
-                            color: selectedSubject === s ? "var(--primary-light)" : "var(--foreground-2)",
-                          }}
-                        >
-                          {s}
-                        </button>
-                      ))}
+                      {currentAlternatives.map((s, i) => {
+                        const isSelected = language === "vi" ? selectedSubjectVi === s : selectedSubjectEn === s;
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => language === "vi" ? setSelectedSubjectVi(s) : setSelectedSubjectEn(s)}
+                            className="w-full text-left text-xs px-3 py-2 rounded-lg transition-all"
+                            style={{
+                              background: isSelected ? "rgba(139,92,246,0.12)" : "var(--surface)",
+                              border: `1px solid ${isSelected ? "rgba(139,92,246,0.4)" : "var(--border)"}`,
+                              color: isSelected ? "var(--primary-light)" : "var(--foreground-2)",
+                            }}
+                          >
+                            {s}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -233,7 +291,7 @@ export default function EmailDraftModal({
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-xs font-bold" style={{ color: "var(--muted)" }}>📝 NỘI DUNG EMAIL</p>
                   <button
-                    onClick={() => copyText(draft.body, "body")}
+                    onClick={() => copyText(currentBody ?? "", "body")}
                     className="text-xs px-2 py-1 rounded-lg transition-colors"
                     style={{
                       color: copied === "body" ? "var(--success)" : "var(--primary-light)",
@@ -247,7 +305,7 @@ export default function EmailDraftModal({
                   className="text-sm leading-relaxed whitespace-pre-wrap"
                   style={{ color: "var(--foreground)" }}
                 >
-                  {draft.body}
+                  {currentBody}
                 </p>
               </div>
 
@@ -262,37 +320,19 @@ export default function EmailDraftModal({
               )}
 
               {/* Actions */}
-              <div className="flex gap-3">
+              <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => copyText(fullEmail, "full")}
                   className="flex-1 btn-gradient flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold"
                 >
                   {copied === "full" ? "✓ Đã chép toàn bộ!" : "📋 Copy toàn bộ email"}
                 </button>
-                <button
-                  onClick={() => {
-                    // Reset để sinh lại
-                    onGenerate({
-                      candidateName: candidateName.trim() || undefined,
-                      recipientName: recipientName.trim() || undefined,
-                      companyName: companyName ?? undefined,
-                      cvText: useCV ? savedCvText : undefined,
-                    });
-                  }}
-                  disabled={isGenerating}
-                  className="px-4 py-3 rounded-xl text-sm font-semibold transition-colors"
-                  style={{
-                    background: "var(--surface-2)",
-                    border: "1px solid var(--border-bright)",
-                    color: "var(--muted)",
-                  }}
-                >
-                  🔄 Sinh lại
-                </button>
               </div>
             </div>
           )}
+          </div>
         </div>
+      </div>
       </div>
     </div>
   );

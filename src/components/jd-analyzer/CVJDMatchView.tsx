@@ -59,7 +59,7 @@ export default function CVJDMatchView({ result, onClose }: Props) {
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl animate-scaleIn"
+        className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl animate-scaleIn"
         style={{ background: "var(--surface)", border: "1px solid var(--border-bright)" }}
       >
         {/* Header */}

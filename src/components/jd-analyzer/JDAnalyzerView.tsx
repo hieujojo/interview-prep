@@ -172,19 +172,34 @@ export default function JDAnalyzerView({
         </p>
       )}
 
+      {/* Info: Evaluation Criteria */}
+      <div className="rounded-xl p-4 flex gap-3 items-start mb-4" style={{ background: "rgba(139,92,246,0.05)", border: "1px dashed rgba(139,92,246,0.3)" }}>
+        <span className="text-lg">🤖</span>
+        <div>
+          <p className="text-xs font-bold mb-1" style={{ color: "var(--primary-light)" }}>Tiêu chí đánh giá của AI đối với JD</p>
+          <p className="text-xs" style={{ color: "var(--muted)" }}>
+            Job Description (JD) sẽ được AI đánh giá mức độ chuyên môn dựa trên các yếu tố: <b>Yêu cầu kỹ năng cốt lõi</b>, <b>Số năm kinh nghiệm</b>, <b>Trách nhiệm công việc</b>, và <b>Mức độ phức tạp của hệ thống</b>.
+            <br className="mb-1"/>
+            Kết quả sẽ bao gồm: <b>Level ước tính</b> (Junior, Mid-level, Senior, Lead...), <b>Mức lương tham khảo</b> tại thị trường Việt Nam, và <b>Bộ câu hỏi phỏng vấn</b> được thiết kế riêng biệt cho JD này.
+          </p>
+        </div>
+      </div>
+
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-3">
         <button
           onClick={onAnalyze}
           disabled={jdText.trim().length < 50 || isAnalyzing}
-          className="btn-gradient flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold"
+          className="btn-gradient w-full md:w-auto flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-sm font-bold shadow-md hover:opacity-90 transition-opacity"
         >
           {isAnalyzing ? (
             <>
               <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" style={{ animation: "spin 0.8s linear infinite" }} />
-              Đang phân tích...
+              Đang phân tích JD...
             </>
-          ) : "🔍 Phân tích JD"}
+          ) : (
+            "🔍 Phân tích JD"
+          )}
         </button>
 
         {result && (

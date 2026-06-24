@@ -239,10 +239,23 @@ export default function ProfileView({
         </p>
       )}
 
+      {/* Info: Evaluation Criteria */}
+      <div className="rounded-xl p-4 flex gap-3 items-start" style={{ background: "rgba(139,92,246,0.05)", border: "1px dashed rgba(139,92,246,0.3)" }}>
+        <span className="text-lg">🤖</span>
+        <div>
+          <p className="text-xs font-bold mb-1" style={{ color: "var(--primary-light)" }}>Tiêu chí đánh giá của AI (Thang điểm 100)</p>
+          <p className="text-xs" style={{ color: "var(--muted)" }}>
+            Hồ sơ của bạn được phân tích toàn diện dựa trên 4 yếu tố chính: <b>Kỹ thuật chuyên sâu</b> (Technical Depth), <b>Sức ảnh hưởng của dự án</b> (Project Impact), <b>Bề dày kinh nghiệm</b> (Experience), và <b>Cách trình bày CV</b> (Presentation). 
+            <br className="mb-1"/>
+            Mức độ đánh giá: <b>Junior</b> (Thực tập/Mới ra trường), <b>Mid-level</b> (Có kinh nghiệm độc lập), <b>Senior</b> (Chuyên gia/Thiết kế hệ thống).
+          </p>
+        </div>
+      </div>
+
       <button
         onClick={onAnalyze}
         disabled={cvText.trim().length < 100 || isAnalyzing}
-        className="btn-gradient flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold"
+        className="btn-gradient w-full md:w-auto flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-sm font-bold shadow-md hover:opacity-90 transition-opacity"
       >
         {isAnalyzing ? (
           <>

@@ -5,8 +5,11 @@ import { useState } from "react";
 export type EmailDraftResult = {
   subject: string;
   body: string;
-  tips: string[];
   alternativeSubjects: string[];
+  subjectEn: string;
+  bodyEn: string;
+  alternativeSubjectsEn: string[];
+  tips: string[];
 };
 
 export function useEmailDraft() {
