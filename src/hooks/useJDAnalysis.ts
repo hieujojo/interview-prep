@@ -14,13 +14,40 @@ export type JDExercise = {
   language: string;
 };
 
+export type CompanyAnalysis = {
+  culture: string;
+  environment: string;
+  techMaturity: "Startup" | "Scale-up" | "Enterprise";
+  workStyle: string;
+  pros: string[];
+  cons: string[];
+};
+
+export type SalaryRange = {
+  min: number;
+  max: number;
+  currency: string;
+  note: string;
+};
+
+export type LearningRoadmapItem = {
+  priority: "Cao" | "Trung bình" | "Thấp";
+  skill: string;
+  reason: string;
+};
+
 export type JDAnalysisResult = {
   techStack: string[];
   level: "Junior" | "Mid" | "Senior";
   levelReason: string;
   focusSkills: string[];
+  companyName: string | null;
+  companyAnalysis: CompanyAnalysis | null;
+  salaryRange: SalaryRange | null;
+  learningRoadmap: LearningRoadmapItem[];
   questions: JDQuestion[];
   exercises: JDExercise[];
+  savedId?: string | null;
 };
 
 export function useJDAnalysis() {

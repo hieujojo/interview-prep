@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
 export async function POST(req: NextRequest) {
@@ -6,34 +6,58 @@ export async function POST(req: NextRequest) {
 
   if (!jdText || jdText.trim().length < 50) {
     return NextResponse.json(
-      { error: "Job Description qua ngan, hay paste day du noi dung." },
+      { error: "Job Description quá ngắn, hãy paste đầy đủ nội dung." },
       { status: 400 }
     );
   }
 
-  const systemPrompt = `Ban la mot senior technical recruiter kiem engineer, doc Job Description va phan tich sau de chuan bi bo cau hoi phong van.
+  const systemPrompt = `Bạn là một senior technical recruiter kiêm engineer người Việt, đọc Job Description và phân tích sâu để chuẩn bị bộ câu hỏi phỏng vấn và thông tin hữu ích cho ứng viên.
 
-Nguyen tac:
-- Tap trung vao nhung gi JD NHAN MANH, khong sinh cau hoi chung chung
-- Neu JD de cap 1 cong nghe nhieu lan o vi tri quan trong -> cau hoi ve cong nghe do phai chiem ti le cao hon
-- Cau hoi behavioral dua vao phan culture values cua JD neu co, neu JD khong co thi dung behavioral chung
-- Moi cau hoi phai co do kho: Co ban, Trung binh, hoac Nang cao
-- Sinh 15-20 cau hoi tong, chia 3 category: Technical, System Design, Behavioral
-- Sinh 2-3 bai tap coding mini phu hop voi stack trong JD
+QUAN TRỌNG: Toàn bộ phản hồi phải bằng tiếng Việt có đầy đủ dấu, chỉ giữ tiếng Anh cho thuật ngữ kỹ thuật (React, Node.js, Docker, v.v.).
 
-Chi dung tieng Viet thuan va tieng Anh cho thuat ngu ky thuat.
+Nguyên tắc phân tích:
+- Tập trung vào những gì JD NHẤN MẠNH, không sinh câu hỏi chung chung
+- Nếu JD đề cập 1 công nghệ nhiều lần ở vị trí quan trọng → câu hỏi về công nghệ đó phải chiếm tỉ lệ cao hơn
+- Câu hỏi behavioral dựa vào phần culture values của JD nếu có
+- Mỗi câu hỏi phải có độ khó: Cơ bản, Trung bình, hoặc Nâng cao
+- Sinh 15-20 câu hỏi tổng, chia 3 category: Technical, System Design, Behavioral
+- Sinh 2-3 bài tập coding mini phù hợp với stack trong JD
 
-Tra loi CHI bang JSON theo dung format sau, khong them text nao khac, khong markdown:
+Phân tích công ty:
+- Trích xuất tên công ty nếu có trong JD
+- Phân tích văn hóa, môi trường làm việc dựa vào ngôn ngữ JD sử dụng
+- Ước tính mức lương dựa vào level và tech stack (ghi rõ là ước tính)
+- Nhận xét về sự ổn định, hướng phát triển của công ty nếu có thông tin
+
+Trả lời CHỈ bằng JSON theo đúng format sau, không thêm text nào khác, không markdown:
 {
-  "techStack": ["cong nghe 1", "cong nghe 2"],
+  "techStack": ["công nghệ 1", "công nghệ 2"],
   "level": "Junior",
-  "levelReason": "ly do uoc tinh level",
-  "focusSkills": ["ky nang 1", "ky nang 2"],
+  "levelReason": "lý do ước tính level bằng tiếng Việt có dấu",
+  "focusSkills": ["kỹ năng 1", "kỹ năng 2"],
+  "companyName": "tên công ty hoặc null nếu không có",
+  "companyAnalysis": {
+    "culture": "mô tả văn hóa công ty bằng tiếng Việt có dấu",
+    "environment": "môi trường làm việc",
+    "techMaturity": "mức độ trưởng thành về kỹ thuật: Startup / Scale-up / Enterprise",
+    "workStyle": "Remote / Hybrid / On-site",
+    "pros": ["ưu điểm 1", "ưu điểm 2"],
+    "cons": ["nhược điểm cần lưu ý 1"]
+  },
+  "salaryRange": {
+    "min": 1000,
+    "max": 2500,
+    "currency": "USD",
+    "note": "Ước tính dựa theo level và tech stack, thị trường Việt Nam"
+  },
+  "learningRoadmap": [
+    { "priority": "Cao", "skill": "tên kỹ năng", "reason": "lý do cần học bằng tiếng Việt" }
+  ],
   "questions": [
-    { "category": "Technical", "difficulty": "Co ban", "content": "noi dung cau hoi" }
+    { "category": "Technical", "difficulty": "Cơ bản", "content": "nội dung câu hỏi bằng tiếng Việt có dấu" }
   ],
   "exercises": [
-    { "title": "ten bai tap", "description": "mo ta ngan gon", "language": "ngon ngu goi y" }
+    { "title": "tên bài tập", "description": "mô tả ngắn gọn bằng tiếng Việt", "language": "ngôn ngữ gợi ý" }
   ]
 }`;
 
@@ -51,13 +75,13 @@ Tra loi CHI bang JSON theo dung format sau, khong them text nao khac, khong mark
       ],
       response_format: { type: "json_object" },
       temperature: 0.3,
-      max_tokens: 4000,
+      max_tokens: 5000,
     }),
   });
 
   if (!aiResponse.ok) {
     const errText = await aiResponse.text();
-    return NextResponse.json({ error: "AI API loi: " + errText }, { status: 500 });
+    return NextResponse.json({ error: "AI API lỗi: " + errText }, { status: 500 });
   }
 
   const aiData = await aiResponse.json();
@@ -67,7 +91,7 @@ Tra loi CHI bang JSON theo dung format sau, khong them text nao khac, khong mark
   try {
     parsed = JSON.parse(rawText);
   } catch {
-    return NextResponse.json({ error: "Khong parse duoc phan hoi AI." }, { status: 500 });
+    return NextResponse.json({ error: "Không parse được phản hồi AI." }, { status: 500 });
   }
 
   const { data: saved, error: saveError } = await supabase
@@ -79,6 +103,10 @@ Tra loi CHI bang JSON theo dung format sau, khong them text nao khac, khong mark
       questions_json: {
         levelReason: parsed.levelReason,
         focusSkills: parsed.focusSkills,
+        companyName: parsed.companyName,
+        companyAnalysis: parsed.companyAnalysis,
+        salaryRange: parsed.salaryRange,
+        learningRoadmap: parsed.learningRoadmap,
         questions: parsed.questions,
         exercises: parsed.exercises,
       },
@@ -87,9 +115,9 @@ Tra loi CHI bang JSON theo dung format sau, khong them text nao khac, khong mark
     .single();
 
   if (saveError) {
-    console.error("Loi luu jd_analyses:", JSON.stringify(saveError, null, 2));
+    console.error("Lỗi lưu jd_analyses:", JSON.stringify(saveError, null, 2));
   } else {
-    console.log("Luu thanh cong jd_analyses id:", saved?.id);
+    console.log("Lưu thành công jd_analyses id:", saved?.id);
   }
 
   return NextResponse.json({ ...parsed, savedId: saved?.id ?? null });

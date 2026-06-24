@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/", icon: "⚡" },
+  { label: "Hồ Sơ", href: "/profile", icon: "👤" },
   { label: "Thành tựu", href: "/achievements", icon: "🏆" },
   { label: "Phỏng vấn", href: "/interview", icon: "🎯" },
   { label: "Phân tích JD", href: "/jd-analyzer", icon: "📋" },
