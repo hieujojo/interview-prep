@@ -9,6 +9,7 @@
 - `answers` (Đã thêm cột `used_hint` BOOLEAN)
 - `categories`
 - `code_reviews`
+- `cv_analyses` (Đã tạo để lưu CV analysis, bao gồm: cv_text, skills, experience, projects, education, strengths, weaknesses, learning_recommendations, interview_questions, overall_score, name, current_level, level_reason)
 - `jd_analyses` (Đã ALTER `session_id` → nullable; `questions_json` chứa levelReason, focusSkills, questions, exercises)
 - `question_bank`
 - `questions`

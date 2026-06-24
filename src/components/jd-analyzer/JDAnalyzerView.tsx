@@ -58,9 +58,20 @@ export default function JDAnalyzerView({
   const { generate, draft, isGenerating, error: emailError, reset: resetEmail } = useEmailDraft();
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setHasSavedCV(!!localStorage.getItem("cv_profile_text"));
-    }
+    const checkSavedCV = async () => {
+      try {
+        const res = await fetch("/api/cv-analysis");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.cvText) {
+          setHasSavedCV(true);
+          setMatchCvText(data.cvText);
+        }
+      } catch (e) {
+        console.error("Failed to check saved CV", e);
+      }
+    };
+    checkSavedCV();
   }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,11 +112,7 @@ export default function JDAnalyzerView({
 
   const openMatchModal = () => {
     resetMatch();
-    // Nếu có CV đã lưu thì dùng luôn
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("cv_profile_text");
-      if (saved) setMatchCvText(saved);
-    }
+    // matchCvText đã được set từ useEffect nếu có saved CV
     setShowMatchModal(true);
   };
 
@@ -554,6 +561,8 @@ export default function JDAnalyzerView({
           isGenerating={isGenerating}
           draft={draft}
           error={emailError}
+          hasSavedCV={hasSavedCV}
+          savedCvText={matchCvText}
         />
       )}
     </div>

@@ -16,6 +16,8 @@ type Props = {
   isGenerating: boolean;
   draft: EmailDraftResult | null;
   error: string | null;
+  hasSavedCV?: boolean;
+  savedCvText?: string;
 };
 
 export default function EmailDraftModal({
@@ -26,6 +28,8 @@ export default function EmailDraftModal({
   isGenerating,
   draft,
   error,
+  hasSavedCV,
+  savedCvText,
 }: Props) {
   const [candidateName, setCandidateName] = useState("");
   const [recipientName, setRecipientName] = useState("");
@@ -33,14 +37,8 @@ export default function EmailDraftModal({
   const [copied, setCopied] = useState<"subject" | "body" | "full" | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
 
-  const hasSavedCV =
-    typeof window !== "undefined" && !!localStorage.getItem("cv_profile_text");
-
   const handleGenerate = () => {
-    const cvText =
-      useCV && typeof window !== "undefined"
-        ? localStorage.getItem("cv_profile_text") ?? undefined
-        : undefined;
+    const cvText = useCV ? savedCvText : undefined;
 
     onGenerate({
       candidateName: candidateName.trim() || undefined,
@@ -278,10 +276,7 @@ export default function EmailDraftModal({
                       candidateName: candidateName.trim() || undefined,
                       recipientName: recipientName.trim() || undefined,
                       companyName: companyName ?? undefined,
-                      cvText:
-                        useCV && typeof window !== "undefined"
-                          ? localStorage.getItem("cv_profile_text") ?? undefined
-                          : undefined,
+                      cvText: useCV ? savedCvText : undefined,
                     });
                   }}
                   disabled={isGenerating}

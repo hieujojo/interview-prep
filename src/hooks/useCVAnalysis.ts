@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export type CVSkills = {
   technical: string[];
@@ -103,12 +103,6 @@ export function useCVAnalysis() {
       }
 
       setResult(data as CVAnalysisResult);
-
-      // Lưu cvText vào localStorage để dùng lại trong JD Analyzer
-      if (typeof window !== "undefined") {
-        localStorage.setItem("cv_profile_text", cvText);
-        localStorage.setItem("cv_profile_result", JSON.stringify(data));
-      }
     } catch {
       setError("Không kết nối được tới server.");
     } finally {
@@ -118,5 +112,5 @@ export function useCVAnalysis() {
 
   const reset = () => setResult(null);
 
-  return { analyze, result, isAnalyzing, error, reset };
+  return { analyze, result, setResult, isAnalyzing, error, reset };
 }

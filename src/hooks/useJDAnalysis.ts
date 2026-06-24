@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const LS_RESULT = "jd_last_result";
+const LS_TEXT   = "jd_last_text";
 
 export type JDQuestion = {
   category: "Technical" | "System Design" | "Behavioral";
@@ -81,7 +84,9 @@ export function useJDAnalysis() {
     }
   };
 
-  const reset = () => setResult(null);
+  const reset = () => {
+    setResult(null);
+  };
 
-  return { analyze, result, isAnalyzing, error, reset };
+  return { analyze, result, setResult, isAnalyzing, error, reset };
 }
