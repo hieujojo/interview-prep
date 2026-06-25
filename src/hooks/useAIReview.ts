@@ -31,8 +31,7 @@ export function useAIReview() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? "Có lỗi xảy ra.");
-        return null;
+        throw new Error(data.error ?? "Có lỗi xảy ra."); // throw thay vì return null
       }
 
       return data as AIReviewResult;

@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { label: "Bài tập", href: "/exercises", icon: "💻" },
   { label: "Lịch sử", href: "/history", icon: "📊" },
   { label: "Thành tựu", href: "/achievements", icon: "🏆" },
+  { label: "Ghi chú học tập", href: "/notes", icon: "📝" },
 ];
 
 const HIDDEN_ROUTES = ["/login", "/auth"];

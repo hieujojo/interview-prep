@@ -71,6 +71,8 @@ Nền tảng luyện phỏng vấn kỹ thuật toàn diện, tích hợp AI (Gr
 - Xem lại toàn bộ lịch sử phỏng vấn, code review, phân tích JD
 - Thống kê điểm số theo thời gian với biểu đồ
 
+### 📓 Ghi chú học tập (`/notes`)
+- Tạo, chỉnh sửa, xoá và tìm kiếm ghi chú cá nhân trong quá trình ôn luyện. Hỗ trợ tags để phân loại nội dung.
 ---
 
 ## 🛠️ Tech Stack

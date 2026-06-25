@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import type { AIReviewResult } from "@/hooks/useAIReview";
+import type { InProgressNote } from '@/types/note';
 
 export type TopicSelection = { topic: string; count: number };
 export type SessionQuestion = { content: string; category: string };
@@ -181,6 +182,29 @@ export function useInterviewSession(reviewFn: ReviewFn) {
     }
   };
 
+  // ── Notes ──
+  const [inProgressNotes, setInProgressNotes] = useState<InProgressNote[]>([]);
+  const [isNoteDrawerOpen, setIsNoteDrawerOpen] = useState(false);
+
+  // Sync notes array khi questions load xong
+  useEffect(() => {
+    if (questions.length > 0) {
+      setInProgressNotes(
+        questions.map((q, idx) => ({
+          questionIndex: idx,
+          questionContent: q.content,
+          noteText: '',
+        }))
+      );
+    }
+  }, [questions.length]);
+
+  const updateNote = (index: number, text: string) => {
+    setInProgressNotes(prev =>
+      prev.map((n, i) => i === index ? { ...n, noteText: text } : n)
+    );
+  };
+
   // ── Voice ──
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
@@ -237,7 +261,13 @@ export function useInterviewSession(reviewFn: ReviewFn) {
     setReviewError(null);
     try {
       const result = await reviewFn(currentQuestion.category, currentQuestion.content, current.userAnswer);
-      if (result) setFeedback(result);
+      if (result) {
+        setFeedback(result);
+      } else {
+        // reviewFn trả null = có lỗi, lấy error từ useAIReview
+        // Nhưng hook không expose error trực tiếp, nên cần truyền error message ra
+        setReviewError("Câu trả lời quá ngắn hoặc có lỗi xảy ra.");
+      }
     } catch (err) {
       setReviewError(err instanceof Error ? err.message : "Lỗi review.");
     } finally {
@@ -298,7 +328,7 @@ export function useInterviewSession(reviewFn: ReviewFn) {
         question_content: a.question.content,
         category: a.question.category,
         user_answer: a.userAnswer,
-        score: a.feedback?.score ?? null,
+        score: a.feedback?.score ?? 0,
         feedback: a.feedback ?? null,
         used_hint: a.usedHint ?? false,
       }));
@@ -308,13 +338,34 @@ export function useInterviewSession(reviewFn: ReviewFn) {
       const { error: answersError } = await supabase
         .from("answers")
         .insert(answersToInsert);
-      
+
       if (answersError) {
-        console.error("❌ Answers Insert Error:", answersError);
+        console.error("❌ code:", answersError.code);
+        console.error("❌ message:", answersError.message);
+        console.error("❌ details:", answersError.details);
         throw answersError;
       }
 
       setIsSaved(true);
+      const notesToSave = inProgressNotes.filter(n => n.noteText.trim().length > 0);
+      if (notesToSave.length > 0) {
+        const notesPayload = notesToSave.map(n => ({
+          user_id: user.id,
+          session_id: sessionData.id,
+          question_index: n.questionIndex,
+          question_content: n.questionContent,
+          note_text: n.noteText,
+        }));
+
+        const { error: notesError } = await supabase
+          .from("session_notes")
+          .insert(notesPayload);
+
+        if (notesError) {
+          console.error("❌ Notes Insert Error:", notesError);
+          // Không throw — lỗi notes không nên block toàn bộ save
+        }
+      }
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Lưu phiên phỏng vấn thất bại.");
     } finally {
@@ -353,6 +404,11 @@ export function useInterviewSession(reviewFn: ReviewFn) {
     isHinting,
     currentHint,
     requestHint,
+    // notes — thêm 2 dòng này
+    inProgressNotes,
+    updateNote,
+    isNoteDrawerOpen,
+    setIsNoteDrawerOpen,
     // voice
     isListening,
     toggleListening,
