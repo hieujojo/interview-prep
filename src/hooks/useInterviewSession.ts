@@ -1,19 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import type { AIReviewResult } from "@/hooks/useAIReview";
 
-export type TopicSelection = {
-  topic: string;
-  count: number;
-};
-
-export type SessionQuestion = {
-  content: string;
-  category: string;
-};
-
+export type TopicSelection = { topic: string; count: number };
+export type SessionQuestion = { content: string; category: string };
 export type SessionAnswer = {
   question: SessionQuestion;
   userAnswer: string;
@@ -21,13 +13,19 @@ export type SessionAnswer = {
   usedHint?: boolean;
 };
 
+type ReviewFn = (
+  category: string,
+  question: string,
+  answer: string
+) => Promise<AIReviewResult | null>;
+
 const DIFFICULTY_ORDER = ["Cơ bản", "Trung bình", "Nâng cao"] as const;
+const TIME_PER_QUESTION = 180;
 
 function shuffle<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
-// Chọn ngẫu nhiên trong từng mức độ khó, chia đều theo tỉ lệ, nối theo thứ tự dễ -> khó
 function pickQuestionsByDifficulty(
   pool: { content: string; difficulty: string }[],
   count: number
@@ -36,71 +34,90 @@ function pickQuestionsByDifficulty(
   for (const q of pool) {
     if (grouped[q.difficulty]) grouped[q.difficulty].push(q.content);
   }
-
   const perLevel = Math.floor(count / DIFFICULTY_ORDER.length);
   let remainder = count - perLevel * DIFFICULTY_ORDER.length;
-
   const picked: string[] = [];
   for (const level of DIFFICULTY_ORDER) {
     const take = perLevel + (remainder > 0 ? 1 : 0);
     if (remainder > 0) remainder--;
     picked.push(...shuffle(grouped[level]).slice(0, take));
   }
-
-  // Nếu thiếu (1 mức không đủ câu), bù thêm từ các câu còn dư của mức khác
   if (picked.length < count) {
     const used = new Set(picked);
     const leftover = shuffle(pool.map((q) => q.content).filter((c) => !used.has(c)));
     picked.push(...leftover.slice(0, count - picked.length));
   }
-
   return picked;
 }
 
-export function useInterviewSession(selections: TopicSelection[]) {
-  const [questions, setQuestions] = useState<SessionQuestion[]>([]);
-  const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+export function formatTime(seconds: number) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
 
+export function useInterviewSession(reviewFn: ReviewFn) {
+  // ── Topic Setup ──
+  const [selections, setSelections] = useState<TopicSelection[] | null>(null);
+  const [selectedTopics, setSelectedTopics] = useState<Record<string, number>>({});
+
+  const totalQuestionsSelected = Object.values(selectedTopics).reduce((a, b) => a + b, 0);
+
+  const handleToggleTopic = (topicName: string, maxCount: number) => {
+    setSelectedTopics((prev) => {
+      const next = { ...prev };
+      if (next[topicName]) delete next[topicName];
+      else next[topicName] = Math.min(10, maxCount);
+      return next;
+    });
+  };
+
+  const handleUpdateCount = (topicName: string, count: number, maxCount: number) => {
+    if (count <= 0) return;
+    if (count > maxCount) count = maxCount;
+    setSelectedTopics((prev) => ({ ...prev, [topicName]: count }));
+  };
+
+  const startSession = () => {
+    const arr = Object.entries(selectedTopics).map(([topic, count]) => ({ topic, count }));
+    if (arr.length > 0) setSelections(arr);
+  };
+
+  const resetSession = () => setSelections(null);
+
+  // ── Questions ──
+  const [questions, setQuestions] = useState<SessionQuestion[]>([]);
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<SessionAnswer[]>([]);
 
   useEffect(() => {
-    async function fetchQuestions() {
-      if (!selections || selections.length === 0) {
-        setIsLoadingQuestions(false);
-        return;
-      }
-      setIsLoadingQuestions(true);
-      setLoadError(null);
+    if (!selections || selections.length === 0) return;
+    setIsLoadingQuestions(true);
+    setLoadError(null);
+    setCurrentIndex(0);
 
+    async function fetchQuestions() {
       try {
         const allSelected: SessionQuestion[] = [];
-
-        for (const sel of selections) {
+        for (const sel of selections!) {
           if (sel.count <= 0) continue;
           const { data, error } = await supabase
             .from("question_bank")
             .select("content, difficulty, categories!inner(topic_id, topics!inner(name))")
             .eq("categories.topics.name", sel.topic);
-
           if (error) throw error;
-
           const pool = (data ?? []).map((q: any) => ({
             content: q.content as string,
             difficulty: q.difficulty as string,
           }));
-
           const selectedContents = pickQuestionsByDifficulty(pool, sel.count);
-          allSelected.push(...selectedContents.map(c => ({ content: c, category: sel.topic })));
+          allSelected.push(...selectedContents.map((c) => ({ content: c, category: sel.topic })));
         }
-
-        const mixedQuestions = shuffle(allSelected);
-
-        setQuestions(mixedQuestions);
-        setAnswers(
-          mixedQuestions.map((q) => ({ question: q, userAnswer: "", feedback: null, usedHint: false }))
-        );
+        const mixed = shuffle(allSelected);
+        setQuestions(mixed);
+        setAnswers(mixed.map((q) => ({ question: q, userAnswer: "", feedback: null, usedHint: false })));
       } catch (err) {
         setLoadError(err instanceof Error ? err.message : "Lỗi tải câu hỏi.");
       } finally {
@@ -113,72 +130,188 @@ export function useInterviewSession(selections: TopicSelection[]) {
   }, [JSON.stringify(selections)]);
 
   const currentQuestion = questions[currentIndex];
+  const current = answers[currentIndex] ?? null;
   const isLastQuestion = currentIndex === questions.length - 1;
   const isFinished = questions.length > 0 && currentIndex >= questions.length;
 
-  const setUserAnswer = (text: string) => {
-    setAnswers((prev) =>
-      prev.map((a, i) => (i === currentIndex ? { ...a, userAnswer: text } : a))
-    );
+  const setUserAnswer = (text: string) =>
+    setAnswers((prev) => prev.map((a, i) => (i === currentIndex ? { ...a, userAnswer: text } : a)));
+
+  const setFeedback = (feedback: AIReviewResult) =>
+    setAnswers((prev) => prev.map((a, i) => (i === currentIndex ? { ...a, feedback } : a)));
+
+  // ── Timer ──
+  const [timeLeft, setTimeLeft] = useState(TIME_PER_QUESTION);
+
+  useEffect(() => {
+    if (!selections || isFinished || !current || current.feedback || timeLeft <= 0) return;
+    const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
+    return () => clearInterval(timer);
+  }, [selections, isFinished, current?.feedback, timeLeft]);
+
+  // ── Hint ──
+  const [isHinting, setIsHinting] = useState(false);
+  const [currentHint, setCurrentHint] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCurrentHint(null);
+  }, [currentIndex]);
+
+  const markHintUsed = () =>
+    setAnswers((prev) => prev.map((a, i) => (i === currentIndex ? { ...a, usedHint: true } : a)));
+
+  const requestHint = async () => {
+    if (!currentQuestion) return;
+    setIsHinting(true);
+    try {
+      const res = await fetch("/api/hint", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: currentQuestion.content }),
+      });
+      const data = await res.json();
+      if (data.hint) {
+        setCurrentHint(data.hint);
+        markHintUsed();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsHinting(false);
+    }
   };
 
-  const setFeedback = (feedback: AIReviewResult) => {
-    setAnswers((prev) =>
-      prev.map((a, i) => (i === currentIndex ? { ...a, feedback } : a))
-    );
+  // ── Voice ──
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const userAnswerRef = useRef(current?.userAnswer ?? "");
+
+  useEffect(() => {
+    userAnswerRef.current = current?.userAnswer ?? "";
+  }, [current?.userAnswer]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.lang = "vi-VN";
+
+    recognition.onresult = (event: any) => {
+      let transcript = "";
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) transcript += event.results[i][0].transcript;
+      }
+      if (transcript && current && !current.feedback) {
+        const newAns = userAnswerRef.current + (userAnswerRef.current ? " " : "") + transcript;
+        setUserAnswer(newAns);
+      }
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+    recognitionRef.current = recognition;
+  }, [currentIndex, current?.feedback]); // eslint-disable-line
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current?.start();
+      setIsListening(true);
+    }
   };
 
-  const markHintUsed = () => {
-    setAnswers((prev) =>
-      prev.map((a, i) => (i === currentIndex ? { ...a, usedHint: true } : a))
-    );
+  // ── Review & Navigation ──
+  const [isReviewing, setIsReviewing] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+
+  const handleSubmitReview = async () => {
+    if (isListening) toggleListening();
+    if (!current || !currentQuestion) return;
+    setIsReviewing(true);
+    setReviewError(null);
+    try {
+      const result = await reviewFn(currentQuestion.category, currentQuestion.content, current.userAnswer);
+      if (result) setFeedback(result);
+    } catch (err) {
+      setReviewError(err instanceof Error ? err.message : "Lỗi review.");
+    } finally {
+      setIsReviewing(false);
+    }
   };
 
-  const goNext = () => setCurrentIndex((i) => i + 1);
+  useEffect(() => {
+    if (timeLeft !== 0 || !current || current.feedback || isReviewing || isFinished) return;
+    if (current.userAnswer.trim().length === 0) setUserAnswer("Hết giờ - Không có câu trả lời.");
+    handleSubmitReview();
+  }, [timeLeft]); // eslint-disable-line
 
-  // Save session logic
+  const handleNext = () => {
+    if (isListening) toggleListening();
+    setTimeLeft(TIME_PER_QUESTION);
+    setCurrentIndex((i) => i + 1);
+  };
+
+  // ── Save Session ──
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
 
-  const saveSession = async () => {
+  const saveSession = useCallback(async () => {
+    if (isSaving || isSaved) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setSaveError("Bạn chưa đăng nhập. Vui lòng đăng nhập lại.");
+      return;
+    }
     setIsSaving(true);
     setSaveError(null);
-
     try {
-      const sessionTopic = selections.length > 1 ? selections.map(s => s.topic).join(", ") : selections[0]?.topic ?? "Unknown";
+      const sessionTopic =
+        selections && selections.length > 1
+          ? selections.map((s) => s.topic).join(", ")
+          : selections?.[0]?.topic ?? "Unknown";
 
+      // 1. Insert session
+      console.log("🚀 Creating session with topic:", sessionTopic, "and user:", user.id);
       const { data: sessionData, error: sessionError } = await supabase
         .from("sessions")
-        .insert({ type: "interview", topic: sessionTopic })
+        .insert({ type: "interview", topic: sessionTopic, user_id: user.id })
         .select()
         .single();
+      if (sessionError) {
+        console.error("❌ Session Insert Error:", sessionError);
+        throw sessionError;
+      }
 
-      if (sessionError) throw sessionError;
-      const sessionId = sessionData.id;
+      console.log("✅ Session created:", sessionData);
 
-      for (const answer of answers) {
-        const { data: questionData, error: questionError } = await supabase
-          .from("questions")
-          .insert({ session_id: sessionId, content: answer.question.content, category: answer.question.category })
-          .select()
-          .single();
+      // 2. Insert tất cả answers kèm session_id
+      const answersToInsert = answers.map((a) => ({
+        user_id: user.id,
+        session_id: sessionData.id,
+        question_content: a.question.content,
+        category: a.question.category,
+        user_answer: a.userAnswer,
+        score: a.feedback?.score ?? null,
+        feedback: a.feedback ?? null,
+        used_hint: a.usedHint ?? false,
+      }));
 
-        if (questionError) throw questionError;
+      console.log("🚀 Inserting answers payload:", JSON.parse(JSON.stringify(answersToInsert)));
 
-        const feedbackText = answer.feedback
-          ? `Điểm mạnh: ${answer.feedback.strengths}\n\nThiếu sót: ${answer.feedback.gaps}\n\nCải thiện: ${answer.feedback.improvements}`
-          : null;
-
-        const { error: answerError } = await supabase.from("answers").insert({
-          question_id: questionData.id,
-          user_answer: answer.userAnswer,
-          ai_feedback: feedbackText,
-          score: answer.feedback?.score ?? null,
-          used_hint: answer.usedHint ?? false
-        });
-
-        if (answerError) throw answerError;
+      const { error: answersError } = await supabase
+        .from("answers")
+        .insert(answersToInsert);
+      
+      if (answersError) {
+        console.error("❌ Answers Insert Error:", answersError);
+        throw answersError;
       }
 
       setIsSaved(true);
@@ -187,22 +320,48 @@ export function useInterviewSession(selections: TopicSelection[]) {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [isSaving, isSaved, selections, answers]);
+
+  useEffect(() => {
+    if (isFinished) saveSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFinished]);
 
   return {
+    // setup
+    selections,
+    selectedTopics,
+    totalQuestionsSelected,
+    handleToggleTopic,
+    handleUpdateCount,
+    startSession,
+    resetSession,
+    // questions
     questions,
     isLoadingQuestions,
     loadError,
     currentIndex,
     currentQuestion,
+    current,
     isLastQuestion,
     isFinished,
     answers,
     setUserAnswer,
-    setFeedback,
-    markHintUsed,
-    goNext,
-    saveSession,
+    // timer
+    timeLeft,
+    // hint
+    isHinting,
+    currentHint,
+    requestHint,
+    // voice
+    isListening,
+    toggleListening,
+    // review
+    isReviewing,
+    reviewError,
+    handleSubmitReview,
+    handleNext,
+    // save
     isSaving,
     saveError,
     isSaved,

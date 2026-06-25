@@ -1,21 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useInterviewSession, TopicSelection } from "@/hooks/useInterviewSession";
 import { useAIReview } from "@/hooks/useAIReview";
 import { useTopics } from "@/hooks/useTopics";
-
-const card = {
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-  borderRadius: 16,
-};
-
-function formatTime(seconds: number) {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
+import { useInterviewSession, formatTime } from "@/hooks/useInterviewSession";
 
 function getTopicLogo(topicName: string) {
   const name = topicName.toLowerCase();
@@ -29,204 +16,63 @@ function getTopicLogo(topicName: string) {
   if (name.includes("next")) return "/logo/nextjs-new.png";
   if (name.includes("mongo")) return "/logo/MongoDB-Emblem-2048x1280-removebg-preview.png";
   if (name.includes("docker")) return "/logo/docker-mark-ocean-blue-removebg-preview.png";
-  if (name.includes("soft skill")) return "/logo/soft-skill.png";
   if (name.includes("kỹ năng mềm") || name.includes("soft skill")) return "/logo/soft-skill.png";
   if (name.includes("sql")) return "/logo/sql.png";
   if (name.includes("git")) return "/logo/git5-removebg-preview.png";
   if (name.includes(".net") || name.includes("c#")) return "/logo/dotnet_.png";
-  return "📝"; // fallback emoji
+  return "📝";
+}
+
+function TopicLogo({ name, className }: { name: string; className?: string }) {
+  const logo = getTopicLogo(name);
+  return logo.startsWith("/")
+    ? <img src={logo} alt={name} className={className ?? "w-full h-full object-contain"} />
+    : <span className="text-xl">{logo}</span>;
+}
+
+function FeedbackSection({ icon, label, content, color, bg }: {
+  icon: string; label: string; content: string; color: string; bg: string;
+}) {
+  return (
+    <div className="rounded-2xl p-5" style={{ background: bg, border: `1px solid ${color}30` }}>
+      <p className="text-[13px] font-extrabold uppercase tracking-widest mb-3 flex items-center gap-2" style={{ color }}>
+        <span className="text-lg">{icon}</span> {label}
+      </p>
+      <p className="text-[15px] whitespace-pre-wrap leading-relaxed text-foreground">{content}</p>
+    </div>
+  );
 }
 
 export const InterviewView = () => {
-  // ── Setup State (Mix Topics) ──
-  const [selections, setSelections] = useState<TopicSelection[] | null>(null);
+  const { review } = useAIReview();
   const { topics, isLoading, error: topicsError } = useTopics();
-  const [selectedTopics, setSelectedTopics] = useState<Record<string, number>>({});
 
-  const handleToggleTopic = (topicName: string, maxCount: number) => {
-    setSelectedTopics((prev) => {
-      const next = { ...prev };
-      if (next[topicName]) delete next[topicName];
-      else next[topicName] = Math.min(10, maxCount);
-      return next;
-    });
-  };
-
-  const handleUpdateCount = (topicName: string, count: number, maxCount: number) => {
-    if (count <= 0) return;
-    if (count > maxCount) count = maxCount;
-    setSelectedTopics((prev) => ({ ...prev, [topicName]: count }));
-  };
-
-  const startSession = () => {
-    const arr = Object.entries(selectedTopics).map(([topic, count]) => ({ topic, count }));
-    if (arr.length > 0) setSelections(arr);
-  };
-
-  const totalQuestionsSelected = Object.values(selectedTopics).reduce((a, b) => a + b, 0);
-
-  // ── Session State ──
   const {
-    questions,
-    isLoadingQuestions,
-    loadError,
-    currentIndex,
-    currentQuestion,
-    isLastQuestion,
-    isFinished,
-    answers,
+    // setup
+    selections, selectedTopics, totalQuestionsSelected,
+    handleToggleTopic, handleUpdateCount, startSession, resetSession,
+    // questions
+    questions, isLoadingQuestions, loadError,
+    currentIndex, currentQuestion, current, isLastQuestion, isFinished, answers,
     setUserAnswer,
-    setFeedback,
-    markHintUsed,
-    goNext,
-    saveSession,
-    isSaving,
-    isSaved,
-    saveError,
-  } = useInterviewSession(selections ?? []);
-
-  const { review, isReviewing, error: reviewError } = useAIReview();
-
-  useEffect(() => {
-    if (isFinished && !isSaved && !isSaving && !saveError) saveSession();
-  }, [isFinished, isSaved, isSaving, saveError, saveSession]);
-
-  const current = answers[currentIndex] ?? null;
-
-  // ── Hint System ──
-  const [isHinting, setIsHinting] = useState(false);
-  const [currentHint, setCurrentHint] = useState<string | null>(null);
-
-  const requestHint = async () => {
-    if (!currentQuestion) return;
-    setIsHinting(true);
-    try {
-      const res = await fetch("/api/hint", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: currentQuestion.content }),
-      });
-      const data = await res.json();
-      if (data.hint) {
-        setCurrentHint(data.hint);
-        markHintUsed();
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsHinting(false);
-    }
-  };
-
-  useEffect(() => {
-    setCurrentHint(null);
-  }, [currentIndex]);
-
-  // ── Timer ──
-  const TIME_PER_QUESTION = 180;
-  const [timeLeft, setTimeLeft] = useState(TIME_PER_QUESTION);
-
-  useEffect(() => {
-    if (selections && !isFinished && current && !current.feedback && timeLeft > 0) {
-      const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
-      return () => clearInterval(timer);
-    }
-  }, [selections, isFinished, current?.feedback, timeLeft]);
-
-  // ── Voice to Text ──
-  const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<any>(null);
-  const userAnswerRef = useRef(current?.userAnswer ?? "");
-
-  useEffect(() => {
-    userAnswerRef.current = current?.userAnswer ?? "";
-  }, [current?.userAnswer]);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = false;
-        recognition.lang = "vi-VN";
-
-        recognition.onresult = (event: any) => {
-          let finalTranscript = "";
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-              finalTranscript += event.results[i][0].transcript;
-            }
-          }
-          if (finalTranscript && current && !current.feedback) {
-            const newAns = userAnswerRef.current + (userAnswerRef.current ? " " : "") + finalTranscript;
-            setUserAnswer(newAns);
-          }
-        };
-
-        recognition.onerror = (event: any) => {
-          console.error("Speech recognition error", event.error);
-          setIsListening(false);
-        };
-
-        recognition.onend = () => {
-          setIsListening(false);
-        };
-
-        recognitionRef.current = recognition;
-      }
-    }
-  }, [currentIndex, current?.feedback, setUserAnswer]); // eslint-disable-line
-
-  const toggleListening = () => {
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-    } else {
-      recognitionRef.current?.start();
-      setIsListening(true);
-    }
-  };
-
-  // ── Actions ──
-  const handleSubmitReview = async () => {
-    if (isListening) toggleListening();
-    if (!current) return;
-    const result = await review(
-      currentQuestion.category,
-      currentQuestion.content,
-      current.userAnswer
-    );
-    if (result) setFeedback(result);
-  };
-
-  useEffect(() => {
-    if (timeLeft === 0 && current && !current.feedback && !isReviewing && !isFinished) {
-      if (current.userAnswer.trim().length > 0) {
-        handleSubmitReview();
-      } else {
-        setUserAnswer("Hết giờ - Không có câu trả lời.");
-        handleSubmitReview();
-      }
-    }
-  }, [timeLeft]); // eslint-disable-line
-
-  const handleNext = () => {
-    if (isListening) toggleListening();
-    setTimeLeft(TIME_PER_QUESTION);
-    goNext();
-  };
+    // timer
+    timeLeft,
+    // hint
+    isHinting, currentHint, requestHint,
+    // voice
+    isListening, toggleListening,
+    // review
+    isReviewing, reviewError, handleSubmitReview, handleNext,
+    // save
+    isSaving, saveError, isSaved,
+  } = useInterviewSession(review);
 
   // ── Setup Screen ──
   if (!selections) {
     return (
       <div className="max-w-6xl mx-auto space-y-8 py-8 px-4 animate-fadeInUp">
         <div className="text-center mb-8">
-          <h1
-            className="text-4xl font-extrabold mb-3"
-            style={{ letterSpacing: "-0.03em", color: "var(--foreground)" }}
-          >
+          <h1 className="text-4xl font-extrabold mb-3" style={{ letterSpacing: "-0.03em", color: "var(--foreground)" }}>
             🎯 Phỏng vấn AI (Mix Topics)
           </h1>
           <p className="text-base text-muted max-w-2xl mx-auto">
@@ -242,9 +88,6 @@ export const InterviewView = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {topics.map((topic) => {
                 const active = !!selectedTopics[topic.name];
-                const logoInfo = getTopicLogo(topic.name);
-                const isImage = logoInfo.startsWith("/");
-
                 return (
                   <div
                     key={topic.id}
@@ -254,36 +97,27 @@ export const InterviewView = () => {
                       background: active ? "rgba(139,92,246,0.12)" : "var(--surface)",
                       border: `1px solid ${active ? "rgba(139,92,246,0.5)" : "var(--border)"}`,
                       transform: active ? "scale(1.02)" : "scale(1)",
-                      boxShadow: active ? "0 10px 25px -5px rgba(139,92,246,0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                      boxShadow: active ? "0 10px 25px -5px rgba(139,92,246,0.2)" : "0 4px 6px -1px rgba(0,0,0,0.1)",
                     }}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 shrink-0 flex items-center justify-center bg-white/5 rounded-xl border border-white/10 p-1">
-                        {isImage ? (
-                          <img src={logoInfo} alt={topic.name} className="w-full h-full object-contain" />
-                        ) : (
-                          <span className="text-2xl">{logoInfo}</span>
-                        )}
+                        <TopicLogo name={topic.name} />
                       </div>
                       <div className="flex-1 overflow-hidden">
-                        <p className="font-bold text-[15px] truncate text-foreground group-hover:text-primary transition-colors">
-                          {topic.name}
-                        </p>
+                        <p className="font-bold text-[15px] truncate text-foreground group-hover:text-primary transition-colors">{topic.name}</p>
                         <p className="text-xs text-muted">Có sẵn {topic.questionCount} câu</p>
                       </div>
-                      <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors ${active ? 'bg-primary border-primary' : 'border-muted'}`}>
+                      <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors ${active ? "bg-primary border-primary" : "border-muted"}`}>
                         {active && <span className="text-white text-xs font-bold">✓</span>}
                       </div>
                     </div>
-
                     {active && (
                       <div className="pt-3 border-t border-border mt-1" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between animate-fadeIn">
                           <span className="text-sm font-medium text-muted">Số câu chọn:</span>
                           <input
-                            type="number"
-                            min={1}
-                            max={topic.questionCount}
+                            type="number" min={1} max={topic.questionCount}
                             value={selectedTopics[topic.name]}
                             onChange={(e) => handleUpdateCount(topic.name, parseInt(e.target.value) || 0, topic.questionCount)}
                             className="w-16 px-2 py-1 text-sm font-bold rounded-lg bg-surface-2 border border-border focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-center transition-all"
@@ -304,11 +138,7 @@ export const InterviewView = () => {
                     Bạn đã chọn <span className="font-extrabold text-primary text-3xl mx-1">{totalQuestionsSelected}</span> câu hỏi
                   </p>
                 </div>
-                <button
-                  disabled={totalQuestionsSelected === 0}
-                  onClick={startSession}
-                  className="btn-gradient px-10 py-4 rounded-2xl text-base font-extrabold flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale transition-all hover:scale-105 active:scale-95 shadow-xl shadow-primary/30"
-                >
+                <button disabled={totalQuestionsSelected === 0} onClick={startSession} className="btn-gradient px-10 py-4 rounded-2xl text-base font-extrabold flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale transition-all hover:scale-105 active:scale-95 shadow-xl shadow-primary/30">
                   <span>🚀</span> Bắt đầu thử thách
                 </button>
               </div>
@@ -319,7 +149,7 @@ export const InterviewView = () => {
     );
   }
 
-  // ── Loading Questions Screen ──
+  // ── Loading Screen ──
   if (isLoadingQuestions)
     return (
       <div className="max-w-4xl mx-auto py-12 space-y-4">
@@ -330,25 +160,22 @@ export const InterviewView = () => {
 
   if (loadError) return <p className="text-danger p-4 text-center font-bold text-lg mt-10">{loadError}</p>;
 
-  if (questions.length === 0) {
+  if (questions.length === 0)
     return (
       <div className="max-w-2xl mx-auto mt-20 p-8 text-center rounded-3xl bg-surface border border-border shadow-xl">
         <span className="text-5xl mb-4 block">📭</span>
         <h2 className="text-2xl font-bold text-foreground mb-2">Không tìm thấy câu hỏi</h2>
-        <p className="text-muted mb-8">Không có câu hỏi nào phù hợp với các chủ đề bạn đã chọn. Vui lòng thử lại với thiết lập khác.</p>
-        <button onClick={() => setSelections(null)} className="btn-gradient px-8 py-3 rounded-xl font-bold">
-          Quay lại chọn Topic
-        </button>
+        <p className="text-muted mb-8">Không có câu hỏi nào phù hợp với các chủ đề bạn đã chọn.</p>
+        <button onClick={resetSession} className="btn-gradient px-8 py-3 rounded-xl font-bold">Quay lại chọn Topic</button>
       </div>
     );
-  }
 
   // ── Finish Screen ──
   if (isFinished) {
-    const totalScore = answers.reduce((sum, a) => sum + (a.feedback?.score ?? 0), 0);
-    const avgScore = answers.length ? totalScore / answers.length : 0;
+    const avgScore = answers.length
+      ? answers.reduce((sum, a) => sum + (a.feedback?.score ?? 0), 0) / answers.length
+      : 0;
     const scoreColor = avgScore >= 7 ? "var(--success)" : avgScore >= 5 ? "var(--warning)" : "var(--danger)";
-
     const badAnswers = answers.filter((a) => (a.feedback?.score ?? 0) < 5);
 
     return (
@@ -356,21 +183,16 @@ export const InterviewView = () => {
         <div className="rounded-3xl p-10 text-center relative overflow-hidden" style={{ background: "var(--surface)", border: `1px solid ${scoreColor}50`, boxShadow: `0 20px 50px -20px ${scoreColor}20` }}>
           <div className="text-7xl mb-6 animate-float">🎉</div>
           <h1 className="text-4xl font-extrabold mb-6" style={{ color: "var(--foreground)" }}>Báo cáo Tổng Kết</h1>
-
-          <div className="inline-flex flex-col items-center justify-center w-36 h-36 rounded-full mb-6 relative" style={{ border: `6px solid ${scoreColor}` }}>
+          <div className="inline-flex flex-col items-center justify-center w-36 h-36 rounded-full mb-6" style={{ border: `6px solid ${scoreColor}` }}>
             <span className="text-5xl font-extrabold" style={{ color: scoreColor }}>{avgScore.toFixed(1)}</span>
             <span className="text-sm font-bold uppercase tracking-widest mt-1" style={{ color: "var(--muted)" }}>Điểm TB</span>
           </div>
-
-          <div style={card} className="p-4 mt-8 max-w-md mx-auto rounded-2xl bg-surface-2 border-border-bright">
-            {isSaving && <p className="text-sm font-bold text-warning flex justify-center gap-2"><span className="animate-spin">⏳</span> Đang lưu kết quả vào kho lưu trữ...</p>}
+          <div className="p-4 mt-8 max-w-md mx-auto rounded-2xl" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+            {isSaving && <p className="text-sm font-bold text-warning flex justify-center gap-2"><span className="animate-spin">⏳</span> Đang lưu kết quả...</p>}
             {isSaved && <p className="text-sm font-bold text-success flex justify-center gap-2"><span>✅</span> Đã lưu kết quả thành công.</p>}
             {saveError && <p className="text-sm font-bold text-danger">❌ Lỗi lưu: {saveError}</p>}
           </div>
-
-          <button onClick={() => setSelections(null)} className="mt-8 text-sm font-bold text-primary hover:underline">
-            ← Quay về Chọn Topic Mới
-          </button>
+          <button onClick={resetSession} className="mt-8 text-sm font-bold text-primary hover:underline">← Quay về Chọn Topic Mới</button>
         </div>
 
         {badAnswers.length > 0 && (
@@ -382,15 +204,12 @@ export const InterviewView = () => {
             {badAnswers.map((ans, idx) => (
               <div key={idx} className="rounded-3xl p-6 space-y-4 shadow-lg" style={{ border: "1px solid rgba(239,68,68,0.3)", background: "var(--surface)" }}>
                 <div className="flex gap-3 items-start border-b border-border pb-4">
-                  <div className="w-10 h-10 rounded-xl bg-danger-bg text-danger font-extrabold flex items-center justify-center text-lg shrink-0">
-                    {ans.feedback?.score}
-                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-danger-bg text-danger font-extrabold flex items-center justify-center text-lg shrink-0">{ans.feedback?.score}</div>
                   <div>
                     <p className="text-xs font-bold text-danger uppercase tracking-wider mb-1">{ans.question.category}</p>
                     <p className="font-bold text-[15px] leading-relaxed text-foreground">{ans.question.content}</p>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                   <div className="p-4 bg-surface-hover rounded-2xl text-sm border border-border">
                     <p className="text-danger text-xs font-bold mb-2 uppercase tracking-widest flex items-center gap-2"><span>⚠️</span> Bạn đã trả lời</p>
@@ -410,32 +229,25 @@ export const InterviewView = () => {
   }
 
   // ── Active Question Screen ──
+  if (!currentQuestion || !current) return null;
+
   const progress = (currentIndex / questions.length) * 100;
-  if (!currentQuestion) return null;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 py-8 px-4 animate-fadeInUp">
-      {/* Header Info */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-2">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-primary-bg rounded-xl flex items-center justify-center">
-            {(() => {
-              const logoInfo = getTopicLogo(currentQuestion.category);
-              return logoInfo.startsWith("/") ? <img src={logoInfo} alt="" className="w-6 h-6 object-contain" /> : <span className="text-xl">{logoInfo}</span>;
-            })()}
+            <TopicLogo name={currentQuestion.category} className="w-6 h-6 object-contain" />
           </div>
           <div>
-            <span className="block text-xs font-bold uppercase tracking-wider text-primary mb-0.5">
-              {currentQuestion.category}
-            </span>
-            <span className="block text-sm font-semibold text-muted">
-              Câu {currentIndex + 1} trên tổng {questions.length}
-            </span>
+            <span className="block text-xs font-bold uppercase tracking-wider text-primary mb-0.5">{currentQuestion.category}</span>
+            <span className="block text-sm font-semibold text-muted">Câu {currentIndex + 1} trên tổng {questions.length}</span>
           </div>
         </div>
         <div className="flex items-center gap-3">
           {currentHint && <span className="text-xs text-warning font-bold bg-warning-bg px-3 py-1.5 rounded-full">💡 Đã dùng gợi ý</span>}
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-extrabold shadow-sm ${timeLeft < 30 && !current.feedback ? 'text-danger bg-danger-bg shadow-danger/20 animate-pulse' : 'text-info bg-info-bg shadow-info/10'}`}>
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-extrabold shadow-sm ${timeLeft < 30 && !current.feedback ? "text-danger bg-danger-bg animate-pulse" : "text-info bg-info-bg"}`}>
             <span className="text-lg">⏱️</span> {formatTime(timeLeft)}
           </div>
         </div>
@@ -448,9 +260,7 @@ export const InterviewView = () => {
       <div className="rounded-3xl p-8 md:p-10 shadow-lg relative overflow-hidden" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
         <div className="absolute top-0 left-0 w-2 h-full bg-primary" />
         <p className="text-xs font-bold text-muted uppercase tracking-widest mb-4">Câu hỏi từ nhà tuyển dụng</p>
-        <h2 className="text-xl md:text-2xl font-bold leading-relaxed text-foreground">
-          {currentQuestion.content}
-        </h2>
+        <h2 className="text-xl md:text-2xl font-bold leading-relaxed text-foreground">{currentQuestion.content}</h2>
       </div>
 
       {currentHint && (
@@ -473,24 +283,14 @@ export const InterviewView = () => {
           className="w-full text-[15px] leading-relaxed rounded-3xl p-6 pr-16 resize-none transition-all duration-300 focus:outline-none bg-surface text-foreground shadow-sm focus:shadow-xl focus:shadow-primary/10"
           style={{ border: current.feedback ? "1px solid var(--border)" : "2px solid var(--border-bright)" }}
         />
-
         {!current.feedback && (
           <div className="absolute bottom-5 right-5 flex flex-col items-center gap-3">
             {!currentHint && (
-              <button
-                onClick={requestHint}
-                disabled={isHinting}
-                className="w-12 h-12 rounded-full bg-surface border border-border shadow-md hover:bg-warning-bg hover:border-warning/50 hover:text-warning transition-all flex items-center justify-center text-xl group/hint"
-                title="Xin gợi ý (Sẽ bị ghi nhận)"
-              >
+              <button onClick={requestHint} disabled={isHinting} className="w-12 h-12 rounded-full bg-surface border border-border shadow-md hover:bg-warning-bg hover:border-warning/50 hover:text-warning transition-all flex items-center justify-center text-xl" title="Xin gợi ý">
                 {isHinting ? <span className="animate-spin text-sm">⏳</span> : "💡"}
               </button>
             )}
-            <button
-              onClick={toggleListening}
-              className={`w-14 h-14 rounded-full shadow-lg transition-all flex items-center justify-center text-2xl ${isListening ? 'bg-danger text-white shadow-danger/40 animate-pulse scale-110' : 'bg-primary text-white shadow-primary/30 hover:scale-105 hover:bg-primary-light'}`}
-              title="Trả lời bằng giọng nói"
-            >
+            <button onClick={toggleListening} className={`w-14 h-14 rounded-full shadow-lg transition-all flex items-center justify-center text-2xl ${isListening ? "bg-danger text-white animate-pulse scale-110" : "bg-primary text-white hover:scale-105"}`} title="Trả lời bằng giọng nói">
               🎙️
             </button>
           </div>
@@ -500,11 +300,7 @@ export const InterviewView = () => {
       {reviewError && <p className="text-sm p-4 rounded-xl text-danger bg-danger-bg font-medium">{reviewError}</p>}
 
       {!current.feedback ? (
-        <button
-          onClick={handleSubmitReview}
-          disabled={!current.userAnswer.trim() || isReviewing}
-          className="btn-gradient w-full py-4 rounded-2xl text-[15px] font-extrabold flex justify-center items-center gap-3 shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all active:scale-[0.98]"
-        >
+        <button onClick={handleSubmitReview} disabled={!current.userAnswer.trim() || isReviewing} className="btn-gradient w-full py-4 rounded-2xl text-[15px] font-extrabold flex justify-center items-center gap-3 shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all active:scale-[0.98]">
           {isReviewing ? <span className="flex items-center gap-2"><span className="animate-spin">⏳</span> Đang phân tích siêu tốc...</span> : "✨ Nộp bài & Nhận Review ngay"}
         </button>
       ) : (
@@ -514,7 +310,7 @@ export const InterviewView = () => {
               <span className="text-2xl">🤖</span>
               <p className="font-extrabold text-[15px] text-foreground">AI Technical Review</p>
             </div>
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl font-extrabold text-sm ${current.feedback.score >= 7 ? 'text-success bg-success-bg' : current.feedback.score >= 5 ? 'text-warning bg-warning-bg' : 'text-danger bg-danger-bg'}`}>
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl font-extrabold text-sm ${current.feedback.score >= 7 ? "text-success bg-success-bg" : current.feedback.score >= 5 ? "text-warning bg-warning-bg" : "text-danger bg-danger-bg"}`}>
               ⭐ Điểm đánh giá: {current.feedback.score}/10
             </div>
           </div>
@@ -522,11 +318,7 @@ export const InterviewView = () => {
             <FeedbackSection icon="✅" label="Điểm mạnh ấn tượng" content={current.feedback.strengths} color="var(--success)" bg="var(--success-bg)" />
             <FeedbackSection icon="⚠️" label="Lỗ hổng cần vá" content={current.feedback.gaps} color="var(--warning)" bg="var(--warning-bg)" />
             <FeedbackSection icon="💡" label="Cách upgrade câu trả lời" content={current.feedback.improvements} color="var(--info)" bg="var(--info-bg)" />
-
-            <button
-              onClick={handleNext}
-              className="btn-gradient w-full py-4 rounded-2xl text-[15px] font-extrabold flex items-center justify-center gap-2 mt-6 shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all active:scale-[0.98]"
-            >
+            <button onClick={handleNext} className="btn-gradient w-full py-4 rounded-2xl text-[15px] font-extrabold flex items-center justify-center gap-2 mt-6 shadow-xl shadow-primary/20 transition-all active:scale-[0.98]">
               {isLastQuestion ? "🏁 Hoàn tất phiên phỏng vấn" : "🚀 Tiếp tục câu tiếp theo"}
             </button>
           </div>
@@ -535,14 +327,3 @@ export const InterviewView = () => {
     </div>
   );
 };
-
-function FeedbackSection({ icon, label, content, color, bg }: { icon: string; label: string; content: string; color: string; bg: string }) {
-  return (
-    <div className="rounded-2xl p-5" style={{ background: bg, border: `1px solid ${color}30` }}>
-      <p className="text-[13px] font-extrabold uppercase tracking-widest mb-3 flex items-center gap-2" style={{ color }}>
-        <span className="text-lg">{icon}</span> {label}
-      </p>
-      <p className="text-[15px] whitespace-pre-wrap leading-relaxed text-foreground">{content}</p>
-    </div>
-  );
-}
