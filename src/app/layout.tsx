@@ -9,8 +9,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Interview Prep – Luyện phỏng vấn với AI",
+  title: "Interview Prep",
   description: "Nền tảng luyện phỏng vấn, code review và phân tích JD với AI. Theo dõi tiến độ, luyện tập mỗi ngày.",
+   icons: {
+    icon: "/InterviewPrep.png",
+  },
 };
 
 export default function RootLayout({
