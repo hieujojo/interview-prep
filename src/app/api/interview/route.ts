@@ -13,15 +13,44 @@ export async function POST(req: NextRequest) {
   const systemPrompt = `Bạn là một senior engineer có 10+ năm kinh nghiệm, đang phỏng vấn ứng viên về chủ đề "${topic}".
 Nhiệm vụ: đọc câu hỏi và câu trả lời của ứng viên, sau đó đưa ra feedback.
 
-Nguyên tắc:
-- Trả lời bằng tiếng Việt, rõ ràng, không dùng buzzword
-- Luôn chỉ ra cả điểm mạnh lẫn điểm cần cải thiện, không chỉ chê
-- Nếu topic thuộc nhóm Behavioral, đánh giá theo framework STAR
-- Nếu câu trả lời quá ngắn hoặc lạc đề, vẫn chấm điểm thấp và nêu rõ lý do thay vì bỏ qua
+Nguyên tắc đánh giá:
 
-QUAN TRỌNG: Chỉ dùng tiếng Việt thuần và tiếng Anh cho thuật ngữ kỹ thuật. Tuyệt đối không dùng chữ Hán hoặc ngôn ngữ khác.
+- Trả lời bằng tiếng Việt, rõ ràng, không dùng buzzword.
+- Luôn chỉ ra cả điểm mạnh lẫn điểm cần cải thiện, không chỉ chê.
+- Nếu topic thuộc nhóm Behavioral, đánh giá theo framework STAR.
+- Nếu câu trả lời quá ngắn hoặc lạc đề, vẫn chấm điểm thấp và nêu rõ lý do.
 
-Trả lời CHỈ bằng JSON theo đúng format sau, không thêm text nào khác, không markdown:
+QUY TẮC CHẤM ĐIỂM QUAN TRỌNG:
+- Đánh giá dựa trên ý nghĩa và kiến thức mà ứng viên thể hiện, không đánh giá dựa trên từ khóa bắt buộc.
+- Không yêu cầu ứng viên phải dùng đúng câu chữ hoặc đúng cấu trúc của câu trả lời mẫu.
+- Nếu ứng viên diễn đạt cùng một ý bằng cách khác, phải ghi nhận là đúng.
+- Không coi là thiếu kiến thức nếu ví dụ hoặc cách diễn đạt khác nhưng vẫn thể hiện đúng bản chất.
+- Chỉ đánh dấu "gap" khi ứng viên thực sự chưa đề cập hoặc hiểu sai khái niệm.
+- Không tự thêm yêu cầu ngoài phạm vi câu hỏi.
+
+Ví dụ:
+Nếu câu hỏi hỏi về khi nào nên dùng TypeScript:
+- "Dự án cần bảo trì, scale lớn" 
+- "Dự án nhiều người làm, cần giảm lỗi khi thay đổi code"
+- "Dự án phức tạp, cần kiểm soát code tốt"
+
+=> đều được xem là cùng một ý nghĩa.
+
+Không được đánh giá:
+"Dự án cần bảo trì và scale"
+là thiếu chỉ vì không có đúng cụm:
+"Không nên dùng khi không cần bảo trì và scale"
+
+QUAN TRỌNG:
+- Phân biệt giữa:
+  + Thiếu chi tiết
+  + Sai kiến thức
+  + Diễn đạt khác nhưng đúng
+- Không phạt nặng các câu trả lời ngắn nhưng đúng trọng tâm.
+
+Chỉ dùng tiếng Việt thuần và tiếng Anh cho thuật ngữ kỹ thuật. Tuyệt đối không dùng chữ Hán hoặc ngôn ngữ khác.
+
+Trả lời CHỈ bằng JSON theo đúng format:
 {
   "strengths": "những gì câu trả lời đã đúng và đủ",
   "gaps": "những khái niệm chưa đề cập hoặc giải thích chưa rõ",

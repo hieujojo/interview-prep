@@ -3,6 +3,7 @@
 import { useAIReview } from "@/hooks/useAIReview";
 import { useTopics } from "@/hooks/useTopics";
 import { useInterviewSession, formatTime } from "@/hooks/useInterviewSession";
+import { NoteDrawer } from '@/components/notes/NoteDrawer';
 
 function getTopicLogo(topicName: string) {
   const name = topicName.toLowerCase();
@@ -46,7 +47,6 @@ function FeedbackSection({ icon, label, content, color, bg }: {
 export const InterviewView = () => {
   const { review } = useAIReview();
   const { topics, isLoading, error: topicsError } = useTopics();
-
   const {
     // setup
     selections, selectedTopics, totalQuestionsSelected,
@@ -65,6 +65,11 @@ export const InterviewView = () => {
     isReviewing, reviewError, handleSubmitReview, handleNext,
     // save
     isSaving, saveError, isSaved,
+    // notes
+    inProgressNotes,
+    updateNote,
+    isNoteDrawerOpen,
+    setIsNoteDrawerOpen,
   } = useInterviewSession(review);
 
   // ── Setup Screen ──
@@ -234,96 +239,113 @@ export const InterviewView = () => {
   const progress = (currentIndex / questions.length) * 100;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 py-8 px-4 animate-fadeInUp">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-2">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary-bg rounded-xl flex items-center justify-center">
-            <TopicLogo name={currentQuestion.category} className="w-6 h-6 object-contain" />
+    <>
+      <div className="max-w-4xl mx-auto space-y-6 py-8 px-4 animate-fadeInUp">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary-bg rounded-xl flex items-center justify-center">
+              <TopicLogo name={currentQuestion.category} className="w-6 h-6 object-contain" />
+            </div>
+            <div>
+              <span className="block text-xs font-bold uppercase tracking-wider text-primary mb-0.5">{currentQuestion.category}</span>
+              <span className="block text-sm font-semibold text-muted">Câu {currentIndex + 1} trên tổng {questions.length}</span>
+            </div>
           </div>
-          <div>
-            <span className="block text-xs font-bold uppercase tracking-wider text-primary mb-0.5">{currentQuestion.category}</span>
-            <span className="block text-sm font-semibold text-muted">Câu {currentIndex + 1} trên tổng {questions.length}</span>
+          <div className="flex items-center gap-3">
+            {currentHint && <span className="text-xs text-warning font-bold bg-warning-bg px-3 py-1.5 rounded-full">💡 Đã dùng gợi ý</span>}
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-extrabold shadow-sm ${timeLeft < 30 && !current.feedback ? "text-danger bg-danger-bg animate-pulse" : "text-info bg-info-bg"}`}>
+              <span className="text-lg">⏱️</span> {formatTime(timeLeft)}
+            </div>
           </div>
+          <button
+            onClick={() => setIsNoteDrawerOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-extrabold bg-surface border border-border hover:border-primary hover:text-primary transition-all shadow-sm"
+            title="Ghi chú"
+          >
+            📝 Ghi chú
+          </button>
         </div>
-        <div className="flex items-center gap-3">
-          {currentHint && <span className="text-xs text-warning font-bold bg-warning-bg px-3 py-1.5 rounded-full">💡 Đã dùng gợi ý</span>}
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-extrabold shadow-sm ${timeLeft < 30 && !current.feedback ? "text-danger bg-danger-bg animate-pulse" : "text-info bg-info-bg"}`}>
-            <span className="text-lg">⏱️</span> {formatTime(timeLeft)}
-          </div>
+
+        <div className="w-full h-2 rounded-full bg-surface border border-border overflow-hidden">
+          <div className="h-full bg-gradient-primary transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
         </div>
-      </div>
 
-      <div className="w-full h-2 rounded-full bg-surface border border-border overflow-hidden">
-        <div className="h-full bg-gradient-primary transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
-      </div>
-
-      <div className="rounded-3xl p-8 md:p-10 shadow-lg relative overflow-hidden" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-        <div className="absolute top-0 left-0 w-2 h-full bg-primary" />
-        <p className="text-xs font-bold text-muted uppercase tracking-widest mb-4">Câu hỏi từ nhà tuyển dụng</p>
-        <h2 className="text-xl md:text-2xl font-bold leading-relaxed text-foreground">{currentQuestion.content}</h2>
-      </div>
-
-      {currentHint && (
-        <div className="p-5 rounded-2xl text-[15px] bg-warning-bg text-warning border border-warning/30 animate-fadeIn flex gap-3">
-          <span className="text-xl shrink-0">💡</span>
-          <div>
-            <p className="font-bold mb-1 uppercase text-xs tracking-widest">Gợi ý siêu việt</p>
-            {currentHint}
-          </div>
+        <div className="rounded-3xl p-8 md:p-10 shadow-lg relative overflow-hidden" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+          <div className="absolute top-0 left-0 w-2 h-full bg-primary" />
+          <p className="text-xs font-bold text-muted uppercase tracking-widest mb-4">Câu hỏi từ nhà tuyển dụng</p>
+          <h2 className="text-xl md:text-2xl font-bold leading-relaxed text-foreground">{currentQuestion.content}</h2>
         </div>
-      )}
 
-      <div className="relative group">
-        <textarea
-          value={current.userAnswer}
-          onChange={(e) => setUserAnswer(e.target.value)}
-          disabled={!!current.feedback}
-          rows={7}
-          placeholder="Nhập câu trả lời chi tiết của bạn tại đây hoặc bấm Micro để đọc..."
-          className="w-full text-[15px] leading-relaxed rounded-3xl p-6 pr-16 resize-none transition-all duration-300 focus:outline-none bg-surface text-foreground shadow-sm focus:shadow-xl focus:shadow-primary/10"
-          style={{ border: current.feedback ? "1px solid var(--border)" : "2px solid var(--border-bright)" }}
-        />
-        {!current.feedback && (
-          <div className="absolute bottom-5 right-5 flex flex-col items-center gap-3">
-            {!currentHint && (
-              <button onClick={requestHint} disabled={isHinting} className="w-12 h-12 rounded-full bg-surface border border-border shadow-md hover:bg-warning-bg hover:border-warning/50 hover:text-warning transition-all flex items-center justify-center text-xl" title="Xin gợi ý">
-                {isHinting ? <span className="animate-spin text-sm">⏳</span> : "💡"}
+        {currentHint && (
+          <div className="p-5 rounded-2xl text-[15px] bg-warning-bg text-warning border border-warning/30 animate-fadeIn flex gap-3">
+            <span className="text-xl shrink-0">💡</span>
+            <div>
+              <p className="font-bold mb-1 uppercase text-xs tracking-widest">Gợi ý siêu việt</p>
+              {currentHint}
+            </div>
+          </div>
+        )}
+
+        <div className="relative group">
+          <textarea
+            value={current.userAnswer}
+            onChange={(e) => setUserAnswer(e.target.value)}
+            disabled={!!current.feedback}
+            rows={7}
+            placeholder="Nhập câu trả lời chi tiết của bạn tại đây hoặc bấm Micro để đọc..."
+            className="w-full text-[15px] leading-relaxed rounded-3xl p-6 pr-16 resize-none transition-all duration-300 focus:outline-none bg-surface text-foreground shadow-sm focus:shadow-xl focus:shadow-primary/10"
+            style={{ border: current.feedback ? "1px solid var(--border)" : "2px solid var(--border-bright)" }}
+          />
+          {!current.feedback && (
+            <div className="absolute bottom-5 right-5 flex flex-col items-center gap-3">
+              {!currentHint && (
+                <button onClick={requestHint} disabled={isHinting} className="w-12 h-12 rounded-full bg-surface border border-border shadow-md hover:bg-warning-bg hover:border-warning/50 hover:text-warning transition-all flex items-center justify-center text-xl" title="Xin gợi ý">
+                  {isHinting ? <span className="animate-spin text-sm">⏳</span> : "💡"}
+                </button>
+              )}
+              <button onClick={toggleListening} className={`w-14 h-14 rounded-full shadow-lg transition-all flex items-center justify-center text-2xl ${isListening ? "bg-danger text-white animate-pulse scale-110" : "bg-primary text-white hover:scale-105"}`} title="Trả lời bằng giọng nói">
+                🎙️
               </button>
-            )}
-            <button onClick={toggleListening} className={`w-14 h-14 rounded-full shadow-lg transition-all flex items-center justify-center text-2xl ${isListening ? "bg-danger text-white animate-pulse scale-110" : "bg-primary text-white hover:scale-105"}`} title="Trả lời bằng giọng nói">
-              🎙️
-            </button>
+            </div>
+          )}
+        </div>
+
+        {reviewError && <p className="text-sm p-4 rounded-xl text-danger bg-danger-bg font-medium">{reviewError}</p>}
+
+        {!current.feedback ? (
+          <button onClick={handleSubmitReview} disabled={!current.userAnswer.trim() || isReviewing} className="btn-gradient w-full py-4 rounded-2xl text-[15px] font-extrabold flex justify-center items-center gap-3 shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all active:scale-[0.98]">
+            {isReviewing ? <span className="flex items-center gap-2"><span className="animate-spin">⏳</span> Đang phân tích siêu tốc...</span> : "✨ Nộp bài & Nhận Review ngay"}
+          </button>
+        ) : (
+          <div className="rounded-3xl overflow-hidden animate-scaleIn border border-border shadow-2xl">
+            <div className="px-6 py-5 flex items-center justify-between bg-surface border-b border-border">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🤖</span>
+                <p className="font-extrabold text-[15px] text-foreground">AI Technical Review</p>
+              </div>
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-xl font-extrabold text-sm ${current.feedback.score >= 7 ? "text-success bg-success-bg" : current.feedback.score >= 5 ? "text-warning bg-warning-bg" : "text-danger bg-danger-bg"}`}>
+                ⭐ Điểm đánh giá: {current.feedback.score}/10
+              </div>
+            </div>
+            <div className="p-6 md:p-8 space-y-5 bg-surface-2">
+              <FeedbackSection icon="✅" label="Điểm mạnh ấn tượng" content={current.feedback.strengths} color="var(--success)" bg="var(--success-bg)" />
+              <FeedbackSection icon="⚠️" label="Lỗ hổng cần vá" content={current.feedback.gaps} color="var(--warning)" bg="var(--warning-bg)" />
+              <FeedbackSection icon="💡" label="Cách upgrade câu trả lời" content={current.feedback.improvements} color="var(--info)" bg="var(--info-bg)" />
+              <button onClick={handleNext} className="btn-gradient w-full py-4 rounded-2xl text-[15px] font-extrabold flex items-center justify-center gap-2 mt-6 shadow-xl shadow-primary/20 transition-all active:scale-[0.98]">
+                {isLastQuestion ? "🏁 Hoàn tất phiên phỏng vấn" : "🚀 Tiếp tục câu tiếp theo"}
+              </button>
+            </div>
           </div>
         )}
       </div>
-
-      {reviewError && <p className="text-sm p-4 rounded-xl text-danger bg-danger-bg font-medium">{reviewError}</p>}
-
-      {!current.feedback ? (
-        <button onClick={handleSubmitReview} disabled={!current.userAnswer.trim() || isReviewing} className="btn-gradient w-full py-4 rounded-2xl text-[15px] font-extrabold flex justify-center items-center gap-3 shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all active:scale-[0.98]">
-          {isReviewing ? <span className="flex items-center gap-2"><span className="animate-spin">⏳</span> Đang phân tích siêu tốc...</span> : "✨ Nộp bài & Nhận Review ngay"}
-        </button>
-      ) : (
-        <div className="rounded-3xl overflow-hidden animate-scaleIn border border-border shadow-2xl">
-          <div className="px-6 py-5 flex items-center justify-between bg-surface border-b border-border">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🤖</span>
-              <p className="font-extrabold text-[15px] text-foreground">AI Technical Review</p>
-            </div>
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl font-extrabold text-sm ${current.feedback.score >= 7 ? "text-success bg-success-bg" : current.feedback.score >= 5 ? "text-warning bg-warning-bg" : "text-danger bg-danger-bg"}`}>
-              ⭐ Điểm đánh giá: {current.feedback.score}/10
-            </div>
-          </div>
-          <div className="p-6 md:p-8 space-y-5 bg-surface-2">
-            <FeedbackSection icon="✅" label="Điểm mạnh ấn tượng" content={current.feedback.strengths} color="var(--success)" bg="var(--success-bg)" />
-            <FeedbackSection icon="⚠️" label="Lỗ hổng cần vá" content={current.feedback.gaps} color="var(--warning)" bg="var(--warning-bg)" />
-            <FeedbackSection icon="💡" label="Cách upgrade câu trả lời" content={current.feedback.improvements} color="var(--info)" bg="var(--info-bg)" />
-            <button onClick={handleNext} className="btn-gradient w-full py-4 rounded-2xl text-[15px] font-extrabold flex items-center justify-center gap-2 mt-6 shadow-xl shadow-primary/20 transition-all active:scale-[0.98]">
-              {isLastQuestion ? "🏁 Hoàn tất phiên phỏng vấn" : "🚀 Tiếp tục câu tiếp theo"}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+      <NoteDrawer
+        open={isNoteDrawerOpen}
+        onClose={() => setIsNoteDrawerOpen(false)}
+        questions={questions}
+        notes={inProgressNotes}
+        currentIndex={currentIndex}
+        onUpdateNote={updateNote}
+      />
+    </>
   );
 };
