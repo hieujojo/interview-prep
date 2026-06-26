@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import type { AIReviewResult } from "@/hooks/useAIReview";
 import type { InProgressNote } from '@/types/note';
+import { useRouter } from "next/navigation";
 
 export type TopicSelection = { topic: string; count: number; categories?: string[] };
 export type SessionQuestion = { content: string; category: string };
@@ -62,6 +63,7 @@ export function useInterviewSession(reviewFn: ReviewFn) {
   const [selections, setSelections] = useState<TopicSelection[] | null>(null);
   const [selectedTopics, setSelectedTopics] = useState<Record<string, number>>({});
 
+  const router = useRouter();   
   const totalQuestionsSelected = Object.values(selectedTopics).reduce((a, b) => a + b, 0);
 
   const handleToggleTopic = (topicName: string, maxCount: number) => {
@@ -140,6 +142,14 @@ export function useInterviewSession(reviewFn: ReviewFn) {
   const current = answers[currentIndex] ?? null;
   const isLastQuestion = currentIndex === questions.length - 1;
   const isFinished = questions.length > 0 && currentIndex >= questions.length;
+
+  useEffect(() => {
+    if (selections && !isFinished) {
+      router.replace("/interview?focus=true");
+    } else {
+      router.replace("/interview");
+    }
+  }, [selections, isFinished]);
 
   const setUserAnswer = (text: string) =>
     setAnswers((prev) => prev.map((a, i) => (i === currentIndex ? { ...a, userAnswer: text } : a)));
@@ -428,5 +438,6 @@ export function useInterviewSession(reviewFn: ReviewFn) {
     isSaving,
     saveError,
     isSaved,
+    isFocusMode: !!selections && !isFinished,
   };
 }
