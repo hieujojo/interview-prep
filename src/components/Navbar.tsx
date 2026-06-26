@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { createClient } from "@/utils/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
@@ -19,7 +19,7 @@ const NAV_ITEMS = [
 
 const HIDDEN_ROUTES = ["/login", "/auth"];
 
-export default function Navbar() {
+function NavbarContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -153,7 +153,6 @@ export default function Navbar() {
                   className="absolute right-0 top-full mt-2 w-56 rounded-xl py-1 z-50 shadow-2xl"
                   style={{ background: "var(--surface)", border: "1px solid var(--border-bright)" }}
                 >
-                  {/* Thông tin user */}
                   <div className="px-4 py-3 border-b" style={{ borderColor: "var(--border)" }}>
                     <p className="text-xs font-bold truncate" style={{ color: "var(--foreground)" }}>
                       {user.user_metadata?.full_name || "Người dùng"}
@@ -163,7 +162,6 @@ export default function Navbar() {
                     </p>
                   </div>
 
-                  {/* 👤 Hồ Sơ - thêm mới */}
                   <Link
                     href="/profile"
                     onClick={() => setShowDropdown(false)}
@@ -173,7 +171,6 @@ export default function Navbar() {
                     👤 Hồ Sơ
                   </Link>
 
-                  {/* 🚪 Đăng xuất */}
                   <button
                     id="logout-btn"
                     onClick={handleLogout}
@@ -189,5 +186,13 @@ export default function Navbar() {
         )}
       </div>
     </nav>
+  );
+}
+
+export default function Navbar() {
+  return (
+    <Suspense>
+      <NavbarContent />
+    </Suspense>
   );
 }
