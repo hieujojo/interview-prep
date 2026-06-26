@@ -44,10 +44,40 @@ function FeedbackSection({ icon, label, content, color, bg }: {
   );
 }
 
+// Thêm component tooltip nhỏ này ngay trên InterviewView hoặc trong cùng file
+function ModeTooltip({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none">
+      <div
+        className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap leading-relaxed text-center"
+        style={{
+          background: "var(--surface)",
+          border: "1px solid rgba(139,92,246,0.35)",
+          color: "var(--foreground)",
+          boxShadow: "0 8px 24px -4px rgba(0,0,0,0.4)",
+        }}
+      >
+        {children}
+      </div>
+      {/* Arrow */}
+      <div
+        className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0"
+        style={{
+          borderLeft: "6px solid transparent",
+          borderRight: "6px solid transparent",
+          borderTop: "6px solid rgba(139,92,246,0.35)",
+        }}
+      />
+    </div>
+  );
+}
+
 export const InterviewView = () => {
   const { review } = useAIReview();
-  const { topics, isLoading, error: topicsError, expandedTopic, toggleExpandTopic,
-    categorySelections, toggleCategory, getSelectedCountForTopic } = useTopics();
+  const { topics, isLoading, error: topicsError, expandedTopics, toggleExpandTopic,
+    categorySelections, toggleCategory, getSelectedCountForTopic,
+    topicCounts, setCountForTopic, getMaxForTopic, getCountForTopic,
+    mode, setMode } = useTopics();
 
   const {
     // setup
@@ -85,6 +115,83 @@ export const InterviewView = () => {
           <p className="text-base text-muted max-w-2xl mx-auto">
             Xây dựng phiên phỏng vấn tùy chỉnh của riêng bạn bằng cách chọn các chủ đề và phân bổ số lượng câu hỏi phù hợp.
           </p>
+
+          <div className="relative flex items-center justify-center gap-2 mt-4 p-1 rounded-2xl bg-surface border border-border w-fit mx-auto">
+
+            {/* Sliding indicator */}
+            <div
+              className="absolute top-1 bottom-1 rounded-xl bg-primary shadow-md transition-all duration-300 ease-in-out"
+              style={{
+                width: "calc(50% - 6px)",
+                left: mode === "quick" ? "4px" : "calc(50% + 2px)",
+              }}
+            />
+
+            <div className="relative group">
+              <button
+                onClick={() => setMode("quick")}
+                className={`relative z-10 px-5 py-2 rounded-xl text-sm font-bold transition-colors duration-300 ${mode === "quick" ? "text-white" : "text-muted hover:text-foreground"
+                  }`}
+              >
+                ⚡ Quick Mode
+              </button>
+              {/* tooltip Quick Mode giữ nguyên */}
+              <div className="opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-200 ease-out pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50">
+                <div
+                  className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap"
+                  style={{
+                    background: "var(--surface)",
+                    border: "1px solid rgba(139,92,246,0.35)",
+                    color: "var(--foreground)",
+                    boxShadow: "0 8px 24px -4px rgba(0,0,0,0.4)",
+                  }}
+                >
+                  🎲 Chọn chủ đề & số câu, hệ thống tự trộn ngẫu nhiên
+                </div>
+                <div
+                  className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0"
+                  style={{
+                    borderLeft: "6px solid transparent",
+                    borderRight: "6px solid transparent",
+                    borderTop: "6px solid rgba(139,92,246,0.35)",
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="relative group">
+              <button
+                onClick={() => setMode("custom")}
+                className={`relative z-10 px-5 py-2 rounded-xl text-sm font-bold transition-colors duration-300 ${mode === "custom" ? "text-white" : "text-muted hover:text-foreground"
+                  }`}
+              >
+                🎯 Chế độ tùy chỉnh
+              </button>
+              {/* tooltip Custom Mode giữ nguyên */}
+              <div className="opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-200 ease-out pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50">
+                <div
+                  className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap"
+                  style={{
+                    background: "var(--surface)",
+                    border: "1px solid rgba(139,92,246,0.35)",
+                    color: "var(--foreground)",
+                    boxShadow: "0 8px 24px -4px rgba(0,0,0,0.4)",
+                  }}
+                >
+                  🗂️ Tự chọn danh mục cụ thể trong từng chủ đề
+                </div>
+                <div
+                  className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0"
+                  style={{
+                    borderLeft: "6px solid transparent",
+                    borderRight: "6px solid transparent",
+                    borderTop: "6px solid rgba(139,92,246,0.35)",
+                  }}
+                />
+              </div>
+            </div>
+
+          </div>
         </div>
 
         {isLoading && <div className="skeleton h-32 rounded-2xl max-w-4xl mx-auto" />}
@@ -95,13 +202,15 @@ export const InterviewView = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {topics.map((topic) => {
                 const active = !!selectedTopics[topic.name];
+                const isExpanded = expandedTopics.has(topic.name); // ← dùng Set
+
                 return (
                   <div
                     key={topic.id}
                     className="flex flex-col gap-3 p-5 rounded-2xl transition-all duration-300 relative overflow-hidden group cursor-pointer"
                     onClick={() => {
                       handleToggleTopic(topic.name, topic.questionCount);
-                      toggleExpandTopic(topic.name);
+                      if (mode === "custom") toggleExpandTopic(topic.name);
                     }}
                     style={{
                       background: active ? "rgba(139,92,246,0.12)" : "var(--surface)",
@@ -110,6 +219,7 @@ export const InterviewView = () => {
                       boxShadow: active ? "0 10px 25px -5px rgba(139,92,246,0.2)" : "0 4px 6px -1px rgba(0,0,0,0.1)",
                     }}
                   >
+                    {/* Header topic — giữ nguyên */}
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 shrink-0 flex items-center justify-center bg-white/5 rounded-xl border border-white/10 p-1">
                         <TopicLogo name={topic.name} />
@@ -122,49 +232,92 @@ export const InterviewView = () => {
                         {active && <span className="text-white text-xs font-bold">✓</span>}
                       </div>
                     </div>
+
+                    {/* Số câu chọn — giữ nguyên */}
                     {active && (
                       <div className="pt-3 border-t border-border mt-1" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between animate-fadeIn">
-                          <span className="text-sm font-medium text-muted">Số câu chọn:</span>
+                          <span className="text-sm font-medium text-muted">
+                            Số câu chọn:
+                            {mode === "custom" && (
+                              <span className="text-xs text-primary ml-1">(max {getMaxForTopic(topic)})</span>
+                            )}
+                          </span>
                           <input
-                            type="number" min={1} max={topic.questionCount}
-                            value={selectedTopics[topic.name]}
-                            onChange={(e) => handleUpdateCount(topic.name, parseInt(e.target.value) || 0, topic.questionCount)}
+                            type="number"
+                            min={1}
+                            max={mode === "custom" ? getMaxForTopic(topic) : topic.questionCount}
+                            value={
+                              mode === "custom"
+                                ? getCountForTopic(topic.name, getMaxForTopic(topic))
+                                : selectedTopics[topic.name]
+                            }
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || 0;
+                              if (mode === "custom") {
+                                setCountForTopic(topic.name, Math.min(val, getMaxForTopic(topic)));
+                              } else {
+                                handleUpdateCount(topic.name, val, topic.questionCount);
+                              }
+                            }}
                             className="w-16 px-2 py-1 text-sm font-bold rounded-lg bg-surface-2 border border-border focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-center transition-all"
                           />
                         </div>
                       </div>
                     )}
+
                   </div>
                 );
               })}
             </div>
 
-            {expandedTopic && topics.find((t) => t.name === expandedTopic) && (
+            {/* Panel category — nằm dưới grid, trên tổng quan */}
+            {mode === "custom" && expandedTopics.size > 0 && (
               <div
-                className="rounded-2xl p-5 animate-fadeIn"
-                style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.3)" }}
+                className="rounded-2xl p-5 animate-fadeIn space-y-5"
+                style={{
+                  background: "rgba(139,92,246,0.06)",
+                  border: "1px solid rgba(139,92,246,0.25)",
+                }}
               >
-                <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "var(--primary)" }}>
-                  Categories trong "{expandedTopic}"
+                <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--primary)" }}>
+                  Chọn danh mục
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  {topics
-                    .find((t) => t.name === expandedTopic)!
-                    .categories.map((cat) => (
-                      <span
-                        key={cat.name}
-                        onClick={() => toggleCategory(expandedTopic!, cat.name)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-semibold border cursor-pointer transition-all flex items-center gap-2
-                          ${categorySelections.get(expandedTopic!)?.has(cat.name)
-                            ? "bg-primary text-white border-primary"
-                            : "bg-surface border-border text-foreground hover:border-primary"}`}
-                      >
-                        {cat.name}
-                        <span className="text-xs opacity-70">({cat.count})</span>
-                      </span>
-                    ))}
-                </div>
+
+                {topics
+                  .filter((t) => expandedTopics.has(t.name))
+                  .map((topic) => (
+                    <div key={topic.name} className="space-y-2">
+                      {/* Topic label */}
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 shrink-0">
+                          <TopicLogo name={topic.name} className="w-full h-full object-contain" />
+                        </div>
+                        <p className="text-sm font-bold text-foreground">{topic.name}</p>
+                        <span className="text-xs text-muted">
+                          ({[...(categorySelections.get(topic.name) ?? [])].length} danh mục đã chọn)
+                        </span>
+                      </div>
+
+                      {/* Category chips */}
+                      <div className="flex flex-wrap gap-2 pl-7">
+                        {topic.categories.map((cat) => (
+                          <span
+                            key={cat.name}
+                            onClick={() => toggleCategory(topic.name, cat.name)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold border cursor-pointer transition-all flex items-center gap-1.5
+                  ${categorySelections.get(topic.name)?.has(cat.name)
+                                ? "bg-primary text-white border-primary shadow-sm shadow-primary/30"
+                                : "bg-surface border-border text-foreground hover:border-primary hover:text-primary"
+                              }`}
+                          >
+                            {cat.name}
+                            <span className="opacity-50">({cat.count})</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
               </div>
             )}
 
@@ -174,21 +327,34 @@ export const InterviewView = () => {
                   <p className="text-muted text-sm font-medium mb-1">Tổng quan thiết lập</p>
                   <p className="text-foreground text-xl">
                     Bạn đã chọn <span className="font-extrabold text-primary text-3xl mx-1">
-                      {topics.reduce((sum, t) => sum + getSelectedCountForTopic(t), 0)}
+                      {mode === "quick"
+                        ? totalQuestionsSelected
+                        : [...categorySelections.keys()].reduce((sum, topicName) => {
+                          const topic = topics.find((t) => t.name === topicName);
+                          if (!topic) return sum;
+                          return sum + getCountForTopic(topicName, getMaxForTopic(topic));
+                        }, 0)}
                     </span> câu hỏi
                   </p>
                 </div>
                 <button
-                  disabled={categorySelections.size === 0}
+                  disabled={mode === "quick" ? totalQuestionsSelected === 0 : categorySelections.size === 0}
                   onClick={() => {
-                    const arr = topics
-                      .filter((t) => categorySelections.has(t.name))
-                      .map((t) => ({
-                        topic: t.name,
-                        count: getSelectedCountForTopic(t),
-                        categories: [...(categorySelections.get(t.name) ?? [])],
-                      }));
-                    if (arr.length > 0) setSelections(arr);
+                    if (mode === "quick") {
+                      startSession();
+                    } else {
+                      const arr = topics
+                        .filter((t) => categorySelections.has(t.name))
+                        .map((t) => {
+                          const max = getMaxForTopic(t);
+                          return {
+                            topic: t.name,
+                            count: getCountForTopic(t.name, max),
+                            categories: [...(categorySelections.get(t.name) ?? [])],
+                          };
+                        });
+                      if (arr.length > 0) setSelections(arr);
+                    }
                   }}
                   className="btn-gradient px-10 py-4 rounded-2xl text-base font-extrabold flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale transition-all hover:scale-105 active:scale-95 shadow-xl shadow-primary/30"
                 >

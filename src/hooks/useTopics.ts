@@ -10,17 +10,17 @@ export type Topic = {
   categories: { name: string; count: number }[];
 };
 
-// topicName → Set<categoryName>  (empty Set = chọn cả topic)
 export type CategorySelections = Map<string, Set<string>>;
+export type Mode = "quick" | "custom";
 
 export function useTopics() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedTopic, setExpandedTopic] = useState<string | null>(null);
-
-  // NEW: category-level selection per topic
+  const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
   const [categorySelections, setCategorySelections] = useState<CategorySelections>(new Map());
+  const [topicCounts, setTopicCounts] = useState<Map<string, number>>(new Map());
+  const [mode, setMode] = useState<Mode>("quick");
 
   useEffect(() => {
     async function fetchTopics() {
@@ -68,9 +68,13 @@ export function useTopics() {
   }, []);
 
   const toggleExpandTopic = (topicName: string) => {
-    setExpandedTopic((prev) => (prev === topicName ? null : topicName));
+    setExpandedTopics((prev) => {
+      const next = new Set(prev);
+      if (next.has(topicName)) next.delete(topicName);
+      else next.add(topicName);
+      return next;
+    });
   };
-
   /**
    * Toggle 1 category chip trong expanded panel.
    * - Nếu chưa có Set → tạo mới với category này
@@ -109,15 +113,37 @@ export function useTopics() {
       .reduce((sum, c) => sum + c.count, 0);
   };
 
+  const setCountForTopic = (topicName: string, count: number) => {
+    setTopicCounts((prev) => new Map(prev).set(topicName, count));
+  };
+
+  const getMaxForTopic = (topic: Topic): number => {
+    const cats = categorySelections.get(topic.name);
+    if (!cats || cats.size === 0) return topic.questionCount;
+    return topic.categories
+      .filter((c) => cats.has(c.name))
+      .reduce((sum, c) => sum + c.count, 0);
+  };
+
+  const getCountForTopic = (topicName: string, max: number): number => {
+    return topicCounts.get(topicName) ?? Math.min(10, max);
+  };
+
   return {
     topics,
     isLoading,
     error,
-    expandedTopic,
+    mode,
+    setMode,
+    expandedTopics,
     toggleExpandTopic,
     // category selection
     categorySelections,
     toggleCategory,
     getSelectedCountForTopic,
+    topicCounts,
+    setCountForTopic,
+    getMaxForTopic,
+    getCountForTopic,
   };
 }
