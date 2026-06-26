@@ -1,26 +1,30 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { LearningNote, CreateNotePayload } from '@/types/note';
+import { Note, CreateManualNotePayload } from '@/types/note';
 
 interface Props {
-  note?: LearningNote | null;
+  note?: Note | null;
   open: boolean;
   onClose: () => void;
-  onSubmit: (payload: CreateNotePayload) => Promise<{ error: string | null }>;
+  onSubmit: (payload: CreateManualNotePayload) => Promise<{ error: string | null }>;
 }
 
-const EMPTY: CreateNotePayload = { title: '', content: '', tags: [] };
+const EMPTY: CreateManualNotePayload = { title: '', content: '', tags: [] };
 
 export function NoteModal({ note, open, onClose, onSubmit }: Props) {
-  const [form, setForm] = useState<CreateNotePayload>(EMPTY);
+  const [form, setForm] = useState<CreateManualNotePayload>(EMPTY);
   const [tagInput, setTagInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
-      setForm(note ? { title: note.title, content: note.content, tags: note.tags } : EMPTY);
+      setForm(
+        note
+          ? { title: note.title ?? '', content: note.content ?? '', tags: note.tags ?? [] }
+          : EMPTY
+      );
       setTagInput('');
       setErrorMsg(null);
     }
