@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import type { User } from "@supabase/supabase-js";
@@ -21,6 +21,7 @@ const HIDDEN_ROUTES = ["/login", "/auth"];
 
 export default function Navbar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -29,6 +30,7 @@ export default function Navbar() {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   const isHidden = HIDDEN_ROUTES.some((r) => pathname.startsWith(r));
+  const isFocusMode = searchParams.get("focus") === "true";
 
   useEffect(() => {
     const supabase = createClient();
@@ -41,7 +43,7 @@ export default function Navbar() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (isHidden) return null;
+  if (isHidden || isFocusMode) return null;
 
   const handleLogout = async () => {
     const supabase = createClient();
