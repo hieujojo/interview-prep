@@ -25,7 +25,6 @@ export function useHistoryData() {
           .from("sessions")
           .select("id, type, topic, created_at")
           .order("created_at", { ascending: false });
-
         if (fetchError) throw fetchError;
         setSessions(data ?? []);
       } catch (err) {
