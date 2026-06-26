@@ -1,5 +1,5 @@
-import { LearningNotesView } from '@/components/notes/LearningNotesView';
+import { NotesView } from '@/components/notes/NotesView';
 
 export default function NotesPage() {
-  return <LearningNotesView />;
+  return <NotesView />;
 }
