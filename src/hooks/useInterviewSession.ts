@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import type { AIReviewResult } from "@/hooks/useAIReview";
 import type { InProgressNote } from '@/types/note';
 
-export type TopicSelection = { topic: string; count: number };
+export type TopicSelection = { topic: string; count: number; categories?: string[] };
 export type SessionQuestion = { content: string; category: string };
 export type SessionAnswer = {
   question: SessionQuestion;
@@ -104,10 +104,16 @@ export function useInterviewSession(reviewFn: ReviewFn) {
         const allSelected: SessionQuestion[] = [];
         for (const sel of selections!) {
           if (sel.count <= 0) continue;
-          const { data, error } = await supabase
+          let query = supabase
             .from("question_bank")
-            .select("content, difficulty, categories!inner(topic_id, topics!inner(name))")
+            .select("content, difficulty, categories!inner(name, topic_id, topics!inner(name))")
             .eq("categories.topics.name", sel.topic);
+
+          if (sel.categories && sel.categories.length > 0) {
+            query = query.in("categories.name", sel.categories);
+          }
+
+          const { data, error } = await query;
           if (error) throw error;
           const pool = (data ?? []).map((q: any) => ({
             content: q.content as string,
@@ -381,6 +387,7 @@ export function useInterviewSession(reviewFn: ReviewFn) {
   return {
     // setup
     selections,
+    setSelections,
     selectedTopics,
     totalQuestionsSelected,
     handleToggleTopic,
