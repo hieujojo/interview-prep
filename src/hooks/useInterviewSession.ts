@@ -314,7 +314,6 @@ export function useInterviewSession(reviewFn: ReviewFn) {
           : selections?.[0]?.topic ?? "Unknown";
 
       // 1. Insert session
-      console.log("🚀 Creating session with topic:", sessionTopic, "and user:", user.id);
       const { data: sessionData, error: sessionError } = await supabase
         .from("sessions")
         .insert({ type: "interview", topic: sessionTopic, user_id: user.id })
@@ -324,8 +323,6 @@ export function useInterviewSession(reviewFn: ReviewFn) {
         console.error("❌ Session Insert Error:", sessionError);
         throw sessionError;
       }
-
-      console.log("✅ Session created:", sessionData);
 
       // 2. Insert tất cả answers kèm session_id
       const answersToInsert = answers.map((a) => ({
@@ -338,8 +335,6 @@ export function useInterviewSession(reviewFn: ReviewFn) {
         feedback: a.feedback ?? null,
         used_hint: a.usedHint ?? false,
       }));
-
-      console.log("🚀 Inserting answers payload:", JSON.parse(JSON.stringify(answersToInsert)));
 
       const { error: answersError } = await supabase
         .from("answers")
