@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
 import type {
   CVAnalysisResult,
   CVInterviewQuestion,
   CVLearningRecommendation,
 } from "@/hooks/useCVAnalysis";
+import { useProfileView } from "@/hooks/useProfileView";
 
 type Props = {
   cvText: string;
@@ -82,43 +82,11 @@ function MiniBar({ value, max = 100, color }: { value: number; max?: number; col
 export default function ProfileView({
   cvText, onChangeCvText, onAnalyze, isAnalyzing, error, result,
 }: Props) {
-  const [isUploading, setIsUploading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"overview" | "questions" | "learning">("overview");
-  const [copiedQuestion, setCopiedQuestion] = useState<number | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    try {
-      const res = await fetch("/api/parse-file", { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Lỗi đọc file");
-      onChangeCvText(data.text);
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (!file) return;
-    const fakeEvent = { target: { files: [file] } } as any;
-    handleFileUpload(fakeEvent);
-  };
-
-  const copyQuestion = (q: CVInterviewQuestion, idx: number) => {
-    navigator.clipboard.writeText(q.content);
-    setCopiedQuestion(idx);
-    setTimeout(() => setCopiedQuestion(null), 2000);
-  };
+  const {
+    activeTab, setActiveTab,
+    isUploading, fileInputRef, triggerUpload, handleFileUpload, handleDrop,
+    copiedQuestion, copyQuestion,
+  } = useProfileView(onChangeCvText);
 
   const score = result?.overallScore?.score ?? 0;
   const scoreColor =
@@ -141,10 +109,7 @@ export default function ProfileView({
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
         className="rounded-2xl p-6 transition-all duration-200"
-        style={{
-          background: "var(--surface)",
-          border: "2px dashed var(--border-bright)",
-        }}
+        style={{ background: "var(--surface)", border: "2px dashed var(--border-bright)" }}
         onDragEnter={(e) => (e.currentTarget.style.borderColor = "var(--primary)")}
         onDragLeave={(e) => (e.currentTarget.style.borderColor = "var(--border-bright)")}
       >
@@ -155,7 +120,7 @@ export default function ProfileView({
           <div className="flex items-center gap-2">
             <input type="file" accept=".pdf,.docx,.doc" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={triggerUpload}
               disabled={isUploading}
               className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors"
               style={{ background: "var(--primary-bg)", color: "var(--primary)", border: "1px solid var(--primary)" }}
@@ -194,11 +159,7 @@ export default function ProfileView({
             rows={8}
             placeholder="Paste nội dung CV vào đây..."
             className="w-full text-sm rounded-xl p-4 resize-none focus:outline-none transition-all duration-200"
-            style={{
-              background: "var(--surface-2)",
-              border: "1px solid var(--border-bright)",
-              color: "var(--foreground)",
-            }}
+            style={{ background: "var(--surface-2)", border: "1px solid var(--border-bright)", color: "var(--foreground)" }}
             onFocus={(e) => (e.target.style.borderColor = "var(--primary)")}
             onBlur={(e) => (e.target.style.borderColor = "var(--border-bright)")}
           />
@@ -211,20 +172,14 @@ export default function ProfileView({
             rows={4}
             placeholder="...hoặc paste text CV trực tiếp vào đây"
             className="w-full text-sm rounded-xl p-4 resize-none focus:outline-none transition-all duration-200 mt-3"
-            style={{
-              background: "var(--surface-2)",
-              border: "1px solid var(--border)",
-              color: "var(--foreground)",
-            }}
+            style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--foreground)" }}
             onFocus={(e) => (e.target.style.borderColor = "var(--primary)")}
             onBlur={(e) => (e.target.style.borderColor = "var(--border)")}
           />
         )}
 
         <div className="flex items-center justify-between mt-3">
-          <span className="text-xs" style={{ color: "var(--muted)" }}>
-            {cvText.length} ký tự
-          </span>
+          <span className="text-xs" style={{ color: "var(--muted)" }}>{cvText.length} ký tự</span>
           {cvText.length > 0 && cvText.trim().length < 100 && (
             <p className="text-xs" style={{ color: "var(--warning)" }}>
               ⚠️ Cần ít nhất 100 ký tự để phân tích
@@ -245,8 +200,8 @@ export default function ProfileView({
         <div>
           <p className="text-xs font-bold mb-1" style={{ color: "var(--primary-light)" }}>Tiêu chí đánh giá của AI (Thang điểm 100)</p>
           <p className="text-xs" style={{ color: "var(--muted)" }}>
-            Hồ sơ của bạn được phân tích toàn diện dựa trên 4 yếu tố chính: <b>Kỹ thuật chuyên sâu</b> (Technical Depth), <b>Sức ảnh hưởng của dự án</b> (Project Impact), <b>Bề dày kinh nghiệm</b> (Experience), và <b>Cách trình bày CV</b> (Presentation). 
-            <br className="mb-1"/>
+            Hồ sơ của bạn được phân tích toàn diện dựa trên 4 yếu tố chính: <b>Kỹ thuật chuyên sâu</b> (Technical Depth), <b>Sức ảnh hưởng của dự án</b> (Project Impact), <b>Bề dày kinh nghiệm</b> (Experience), và <b>Cách trình bày CV</b> (Presentation).
+            <br className="mb-1" />
             Mức độ đánh giá: <b>Junior</b> (Thực tập/Mới ra trường), <b>Mid-level</b> (Có kinh nghiệm độc lập), <b>Senior</b> (Chuyên gia/Thiết kế hệ thống).
           </p>
         </div>
@@ -279,7 +234,6 @@ export default function ProfileView({
             }}
           >
             <div className="flex flex-col sm:flex-row items-center gap-6">
-              {/* Score Ring */}
               <div className="relative flex-shrink-0">
                 <ScoreRing score={score} size={100} />
                 <div
@@ -306,7 +260,6 @@ export default function ProfileView({
                   {result.levelReason}
                 </p>
 
-                {/* Breakdown */}
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { label: "Kỹ thuật", val: result.overallScore.breakdown.technicalDepth, color: "var(--primary)" },
@@ -351,7 +304,6 @@ export default function ProfileView({
           {/* Overview Tab */}
           {activeTab === "overview" && (
             <div className="space-y-5 animate-fadeIn">
-              {/* Skills */}
               <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                 <h3 className="text-sm font-bold mb-3" style={{ color: "var(--foreground)" }}>⚡ Kỹ năng</h3>
                 <div className="space-y-3">
@@ -377,7 +329,6 @@ export default function ProfileView({
                 </div>
               </div>
 
-              {/* Strengths & Weaknesses */}
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid rgba(52,211,153,0.2)" }}>
                   <h3 className="text-sm font-bold mb-3" style={{ color: "var(--success)" }}>✅ Điểm mạnh</h3>
@@ -404,7 +355,6 @@ export default function ProfileView({
                 </div>
               </div>
 
-              {/* Experience */}
               {result.experience?.length > 0 && (
                 <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                   <h3 className="text-sm font-bold mb-4" style={{ color: "var(--foreground)" }}>💼 Kinh nghiệm</h3>
@@ -427,7 +377,6 @@ export default function ProfileView({
                 </div>
               )}
 
-              {/* Projects */}
               {result.projects?.length > 0 && (
                 <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                   <h3 className="text-sm font-bold mb-4" style={{ color: "var(--foreground)" }}>🚀 Dự án</h3>

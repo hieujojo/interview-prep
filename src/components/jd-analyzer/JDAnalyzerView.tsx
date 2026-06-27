@@ -1,130 +1,70 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import type { JDAnalysisResult } from "@/hooks/useJDAnalysis";
-import { useCVJDMatch } from "@/hooks/useCVJDMatch";
-import { useEmailDraft } from "@/hooks/useEmailDraft";
 import CVJDMatchView from "./CVJDMatchView";
 import EmailDraftModal from "./EmailDraftModal";
-
-type Props = {
-  jdText: string;
-  onChangeJdText: (text: string) => void;
-  onAnalyze: () => void;
-  isAnalyzing: boolean;
-  error: string | null;
-  result: JDAnalysisResult | null;
-  isSaving: boolean;
-  isSaved: boolean;
-  saveError: string | null;
-};
+import { useJDAnalyzerView } from "@/hooks/useJDAnalyzerView";
 
 const DIFFICULTY_STYLE: Record<string, { color: string; bg: string }> = {
-  "Cơ bản":   { color: "var(--success)", bg: "var(--success-bg)" },
+  "Cơ bản": { color: "var(--success)", bg: "var(--success-bg)" },
   "Trung bình": { color: "var(--warning)", bg: "var(--warning-bg)" },
-  "Nâng cao": { color: "var(--danger)",  bg: "var(--danger-bg)" },
-  Easy:       { color: "var(--success)", bg: "var(--success-bg)" },
-  Medium:     { color: "var(--warning)", bg: "var(--warning-bg)" },
-  Hard:       { color: "var(--danger)",  bg: "var(--danger-bg)" },
+  "Nâng cao": { color: "var(--danger)", bg: "var(--danger-bg)" },
+  Easy: { color: "var(--success)", bg: "var(--success-bg)" },
+  Medium: { color: "var(--warning)", bg: "var(--warning-bg)" },
+  Hard: { color: "var(--danger)", bg: "var(--danger-bg)" },
 };
 
 const PRIORITY_STYLE: Record<string, { color: string; bg: string }> = {
-  Cao:          { color: "var(--danger)",  bg: "var(--danger-bg)" },
+  Cao: { color: "var(--danger)", bg: "var(--danger-bg)" },
   "Trung bình": { color: "var(--warning)", bg: "var(--warning-bg)" },
-  Thấp:         { color: "var(--success)", bg: "var(--success-bg)" },
+  Thấp: { color: "var(--success)", bg: "var(--success-bg)" },
 };
 
 const TECH_MATURITY_COLOR: Record<string, string> = {
-  Startup:     "var(--warning)",
-  "Scale-up":  "var(--info)",
-  Enterprise:  "var(--success)",
+  Startup: "var(--warning)",
+  "Scale-up": "var(--info)",
+  Enterprise: "var(--success)",
 };
 
-export default function JDAnalyzerView({
-  jdText, onChangeJdText, onAnalyze, isAnalyzing, error, result,
-  isSaving, isSaved, saveError,
-}: Props) {
-  const [isUploading, setIsUploading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"questions" | "company" | "roadmap">("questions");
-  const [showMatchModal, setShowMatchModal] = useState(false);
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [matchCvText, setMatchCvText] = useState("");
-  const [hasSavedCV, setHasSavedCV] = useState(false);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cvFileRef = useRef<HTMLInputElement>(null);
-
-  const { match, result: matchResult, isMatching, error: matchError, reset: resetMatch } = useCVJDMatch();
-  const { generate, draft, isGenerating, error: emailError, reset: resetEmail } = useEmailDraft();
-
-  useEffect(() => {
-    const checkSavedCV = async () => {
-      try {
-        const res = await fetch("/api/cv-analysis");
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data && data.cvText) {
-          setHasSavedCV(true);
-          setMatchCvText(data.cvText);
-        }
-      } catch (e) {
-        console.error("Failed to check saved CV", e);
-      }
-    };
-    checkSavedCV();
-  }, []);
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    try {
-      const res = await fetch("/api/parse-file", { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Lỗi đọc file");
-      onChangeJdText(data.text);
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
-  const handleCvUploadForMatch = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append("file", file);
-    try {
-      const res = await fetch("/api/parse-file", { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Lỗi đọc file");
-      setMatchCvText(data.text);
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      if (cvFileRef.current) cvFileRef.current.value = "";
-    }
-  };
-
-  const openMatchModal = () => {
-    resetMatch();
-    // matchCvText đã được set từ useEffect nếu có saved CV
-    setShowMatchModal(true);
-  };
-
-  const handleMatch = () => {
-    if (matchCvText && jdText) {
-      match(matchCvText, jdText);
-    }
-  };
+export default function JDAnalyzerView() {
+  const {
+    jdText, handleChangeJdText, analyze,
+    result, isAnalyzing, error,
+    isSaving, isSaved, saveError,
+    activeTab, setActiveTab,
+    isUploading, fileInputRef, triggerJDUpload, handleFileUpload,
+    cvFileRef, triggerCVUpload, handleCvUploadForMatch,
+    matchCvText, setMatchCvText, hasSavedCV, uploadError, setUploadError,
+    matchResult, isMatching, matchError, showMatchModal, openMatchModal, closeMatchModal, handleMatch,
+    showEmailModal, draft, isGenerating, emailError, generate, openEmailModal, closeEmailModal,
+  } = useJDAnalyzerView();
 
   return (
     <div className="space-y-6 animate-fadeInUp">
       {/* Header */}
+      {uploadError && (
+        <div
+          className="flex items-start gap-3 px-4 py-3 rounded-xl animate-fadeInUp"
+          style={{
+            background: "rgba(239,68,68,0.08)",
+            border: "1px solid rgba(239,68,68,0.3)",
+          }}
+        >
+          <span className="text-base shrink-0">⚠️</span>
+          <div className="flex-1">
+            <p className="text-xs font-bold mb-0.5" style={{ color: "var(--danger)" }}>File không hợp lệ</p>
+            <p className="text-xs leading-relaxed" style={{ color: "var(--muted)" }}>
+              File này có vẻ không phải là JD. Vui lòng thử lại với file PDF/DOCX chứa nội dung Job Description.
+            </p>
+          </div>
+          <button
+            onClick={() => setUploadError(null)}
+            className="shrink-0 w-5 h-5 flex items-center justify-center rounded-full text-xs"
+            style={{ background: "var(--surface-2)", color: "var(--muted)" }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
       <div>
         <h1 className="text-3xl font-extrabold mb-1" style={{ letterSpacing: "-0.03em", color: "var(--foreground)" }}>
           📋 Phân tích JD
@@ -141,7 +81,7 @@ export default function JDAnalyzerView({
             Nội dung Job Description
             <input type="file" accept=".pdf,.docx,.doc" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={triggerJDUpload}
               disabled={isUploading}
               className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors"
               style={{ background: "var(--primary-bg)", color: "var(--primary)", border: "1px solid var(--primary-light)" }}
@@ -153,7 +93,7 @@ export default function JDAnalyzerView({
         </div>
         <textarea
           value={jdText}
-          onChange={(e) => onChangeJdText(e.target.value)}
+          onChange={(e) => handleChangeJdText(e.target.value)}
           rows={10}
           placeholder="Paste toàn bộ nội dung JD vào đây, không cần format..."
           className="w-full text-sm rounded-xl p-4 resize-none focus:outline-none transition-all duration-200"
@@ -179,7 +119,7 @@ export default function JDAnalyzerView({
           <p className="text-xs font-bold mb-1" style={{ color: "var(--primary-light)" }}>Tiêu chí đánh giá của AI đối với JD</p>
           <p className="text-xs" style={{ color: "var(--muted)" }}>
             Job Description (JD) sẽ được AI đánh giá mức độ chuyên môn dựa trên các yếu tố: <b>Yêu cầu kỹ năng cốt lõi</b>, <b>Số năm kinh nghiệm</b>, <b>Trách nhiệm công việc</b>, và <b>Mức độ phức tạp của hệ thống</b>.
-            <br className="mb-1"/>
+            <br className="mb-1" />
             Kết quả sẽ bao gồm: <b>Level ước tính</b> (Junior, Mid-level, Senior, Lead...), <b>Mức lương tham khảo</b> tại thị trường Việt Nam, và <b>Bộ câu hỏi phỏng vấn</b> được thiết kế riêng biệt cho JD này.
           </p>
         </div>
@@ -188,7 +128,7 @@ export default function JDAnalyzerView({
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-3">
         <button
-          onClick={onAnalyze}
+          onClick={analyze}
           disabled={jdText.trim().length < 50 || isAnalyzing}
           className="btn-gradient w-full md:w-auto flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-sm font-bold shadow-md hover:opacity-90 transition-opacity"
         >
@@ -212,7 +152,7 @@ export default function JDAnalyzerView({
               🔗 Kết hợp với CV
             </button>
             <button
-              onClick={() => { resetEmail(); setShowEmailModal(true); }}
+              onClick={openEmailModal}
               className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all duration-200"
               style={{ background: "rgba(52,211,153,0.12)", color: "var(--success)", border: "1px solid rgba(52,211,153,0.3)" }}
             >
@@ -230,14 +170,12 @@ export default function JDAnalyzerView({
             style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.08), rgba(99,102,241,0.04))", border: "1px solid rgba(139,92,246,0.2)" }}>
             <h2 className="text-base font-bold mb-4" style={{ color: "var(--foreground)" }}>📊 Tổng quan</h2>
             <div className="grid md:grid-cols-3 gap-4">
-              {/* Level */}
               <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                 <p className="text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>Level ước tính</p>
                 <p className="text-base font-bold" style={{ color: "var(--primary-light)" }}>{result.level}</p>
                 <p className="text-xs mt-1 leading-relaxed" style={{ color: "var(--foreground-2)" }}>{result.levelReason}</p>
               </div>
 
-              {/* Tech stack */}
               <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                 <p className="text-xs font-medium mb-2" style={{ color: "var(--muted)" }}>Tech stack</p>
                 <div className="flex flex-wrap gap-1.5">
@@ -250,7 +188,6 @@ export default function JDAnalyzerView({
                 </div>
               </div>
 
-              {/* Focus skills */}
               <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                 <p className="text-xs font-medium mb-2" style={{ color: "var(--muted)" }}>Kỹ năng trọng tâm</p>
                 <div className="flex flex-wrap gap-1.5">
@@ -264,7 +201,6 @@ export default function JDAnalyzerView({
               </div>
             </div>
 
-            {/* Salary range */}
             {result.salaryRange && (
               <div className="mt-4 rounded-xl p-4 flex items-center gap-4"
                 style={{ background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.2)" }}>
@@ -490,18 +426,18 @@ export default function JDAnalyzerView({
         </div>
       )}
 
-      {/* CV-JD Match Modal Trigger */}
+      {/* CV-JD Match Modal */}
       {showMatchModal && !matchResult && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }}
-          onClick={(e) => e.target === e.currentTarget && setShowMatchModal(false)}
+          onClick={(e) => e.target === e.currentTarget && closeMatchModal()}
         >
           <div className="w-full max-w-lg rounded-2xl p-6 animate-scaleIn space-y-4"
             style={{ background: "var(--surface)", border: "1px solid var(--border-bright)" }}>
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-extrabold" style={{ color: "var(--foreground)" }}>🔗 Kết hợp CV + JD</h2>
-              <button onClick={() => setShowMatchModal(false)}
+              <button onClick={closeMatchModal}
                 className="w-8 h-8 rounded-full flex items-center justify-center"
                 style={{ background: "var(--surface-2)", color: "var(--muted)" }}>✕</button>
             </div>
@@ -520,7 +456,7 @@ export default function JDAnalyzerView({
                   Chưa có CV trong hồ sơ. Upload CV hoặc paste text dưới đây:
                 </p>
                 <input type="file" accept=".pdf,.docx,.doc" className="hidden" ref={cvFileRef} onChange={handleCvUploadForMatch} />
-                <button onClick={() => cvFileRef.current?.click()}
+                <button onClick={triggerCVUpload}
                   className="px-4 py-2 rounded-xl text-xs font-bold"
                   style={{ background: "var(--primary-bg)", color: "var(--primary)", border: "1px solid var(--primary)" }}>
                   📁 Upload CV (PDF/DOCX)
@@ -563,7 +499,7 @@ export default function JDAnalyzerView({
 
       {/* CV-JD Match Result Modal */}
       {showMatchModal && matchResult && (
-        <CVJDMatchView result={matchResult} onClose={() => { setShowMatchModal(false); resetMatch(); }} />
+        <CVJDMatchView result={matchResult} onClose={closeMatchModal} />
       )}
 
       {/* Email Draft Modal */}
@@ -571,7 +507,7 @@ export default function JDAnalyzerView({
         <EmailDraftModal
           jdText={jdText}
           companyName={result?.companyName}
-          onClose={() => { setShowEmailModal(false); resetEmail(); }}
+          onClose={closeEmailModal}
           onGenerate={(opts) => generate(jdText, opts)}
           isGenerating={isGenerating}
           draft={draft}
