@@ -51,7 +51,7 @@ export const InterviewView = () => {
     expandedTopics, expandTopic, collapseTopic,
     categorySelections, toggleCategory,
     topicCounts, setCountForTopic, getMaxForTopic, getCountForTopic,
-    mode, setMode,clearCategorySelection 
+    mode, setMode, clearCategorySelection
   } = useTopics();
 
   const {
@@ -69,6 +69,7 @@ export const InterviewView = () => {
     updateNote,
     isNoteDrawerOpen,
     setIsNoteDrawerOpen,
+    isRegenerating, regenerateError, handleRegenerate
   } = useInterviewSession(review);
 
   // ── Setup Screen ──
@@ -499,9 +500,26 @@ export const InterviewView = () => {
               <FeedbackSection icon="✅" label="Điểm mạnh ấn tượng" content={current.feedback.strengths} color="var(--success)" bg="var(--success-bg)" />
               <FeedbackSection icon="⚠️" label="Lỗ hổng cần vá" content={current.feedback.gaps} color="var(--warning)" bg="var(--warning-bg)" />
               <FeedbackSection icon="💡" label="Cách upgrade câu trả lời" content={current.feedback.improvements} color="var(--info)" bg="var(--info-bg)" />
-              <button onClick={handleNext} className="btn-gradient w-full py-4 rounded-2xl text-[15px] font-extrabold flex items-center justify-center gap-2 mt-6 shadow-xl shadow-primary/20 transition-all active:scale-[0.98]">
-                {isLastQuestion ? "🏁 Hoàn tất phiên phỏng vấn" : "🚀 Tiếp tục câu tiếp theo"}
-              </button>
+              {/* Sau FeedbackSection cuối, trước nút Next */}
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <button
+                  onClick={handleRegenerate}
+                  disabled={isRegenerating}
+                  className="flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold border border-border bg-surface hover:border-primary hover:text-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isRegenerating
+                    ? <><span className="animate-spin">⏳</span> Đang tạo lại...</>
+                    : <><span>🔄</span> Regenerate</>
+                  }
+                </button>
+                <button onClick={handleNext} className="btn-gradient flex-1 py-3 rounded-2xl text-[15px] font-extrabold ...">
+                  {isLastQuestion ? "🏁 Hoàn tất" : "🚀 Câu tiếp theo"}
+                </button>
+              </div>
+
+              {regenerateError && (
+                <p className="text-sm p-3 rounded-xl text-danger bg-danger-bg">{regenerateError}</p>
+              )}
             </div>
           </div>
         )}
