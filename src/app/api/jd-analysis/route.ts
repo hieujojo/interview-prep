@@ -18,6 +18,36 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Validation: kiểm tra có phải JD không
+  const checkResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        {
+          role: "user",
+          content: `Đây có phải là Job Description (JD) tuyển dụng không? Chỉ trả lời "yes" hoặc "no", không giải thích.\n\n${jdText.slice(0, 1000)}`,
+        },
+      ],
+      temperature: 0,
+      max_tokens: 5,
+    }),
+  });
+
+  const checkData = await checkResponse.json();
+  const checkAnswer = checkData.choices?.[0]?.message?.content?.trim().toLowerCase() ?? "";
+
+  if (!checkAnswer.includes("yes")) {
+    return NextResponse.json(
+      { error: "Nội dung không phải là Job Description. Vui lòng thử lại với file JD hợp lệ." },
+      { status: 400 }
+    );
+  }
+
   const systemPrompt = `Bạn là một senior technical recruiter kiêm engineer người Việt, đọc Job Description và phân tích sâu để chuẩn bị bộ câu hỏi phỏng vấn và thông tin hữu ích cho ứng viên.
 
 QUAN TRỌNG: Toàn bộ phản hồi phải bằng tiếng Việt có đầy đủ dấu, chỉ giữ tiếng Anh cho thuật ngữ kỹ thuật (React, Node.js, Docker, v.v.).

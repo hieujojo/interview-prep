@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
 import type {
   CVAnalysisResult,
   CVInterviewQuestion,
   CVLearningRecommendation,
 } from "@/hooks/useCVAnalysis";
+import { useProfileView } from "@/hooks/useProfileView";
+import { useState } from "react";
 
 type Props = {
   cvText: string;
@@ -35,6 +36,21 @@ const CATEGORY_ICON: Record<string, string> = {
   Behavioral: "🧠",
 };
 
+// 5 levels với màu riêng
+const LEVEL_STYLE: Record<string, { color: string; bg: string; border: string }> = {
+  Intern:  { color: "#94a3b8", bg: "rgba(148,163,184,0.1)",  border: "rgba(148,163,184,0.3)"  },
+  Fresher: { color: "var(--info)",    bg: "var(--info-bg)",    border: "rgba(96,165,250,0.3)"   },
+  Junior:  { color: "var(--success)", bg: "var(--success-bg)", border: "rgba(52,211,153,0.3)"   },
+  Middle:  { color: "var(--warning)", bg: "var(--warning-bg)", border: "rgba(251,191,36,0.3)"   },
+  Senior:  { color: "var(--danger)",  bg: "var(--danger-bg)",  border: "rgba(248,113,113,0.3)"  },
+};
+
+const CONFIDENCE_STYLE: Record<string, { color: string; bg: string }> = {
+  Cao:        { color: "var(--success)", bg: "var(--success-bg)" },
+  "Trung bình": { color: "var(--warning)", bg: "var(--warning-bg)" },
+  Thấp:       { color: "var(--muted)",   bg: "var(--surface-2)"  },
+};
+
 function ScoreRing({ score, size = 80 }: { score: number; size?: number }) {
   const radius = (size - 10) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -53,12 +69,6 @@ function ScoreRing({ score, size = 80 }: { score: number; size?: number }) {
         strokeLinecap="round"
         style={{ transition: "stroke-dashoffset 1s ease-out" }}
       />
-      <text
-        x="50%" y="50%"
-        textAnchor="middle" dominantBaseline="middle"
-        style={{ transform: "rotate(90deg) translate(0, -100%)", fill: color, fontSize: 16, fontWeight: 800 }}
-      >
-      </text>
     </svg>
   );
 }
@@ -79,50 +89,130 @@ function MiniBar({ value, max = 100, color }: { value: number; max?: number; col
   );
 }
 
+// Level progress bar — highlight vị trí hiện tại trong chuỗi 5 level
+function LevelProgressBar({ currentLevel }: { currentLevel: string }) {
+  const LEVELS = ["Intern", "Fresher", "Junior", "Middle", "Senior"] as const;
+  const currentIndex = LEVELS.indexOf(currentLevel as typeof LEVELS[number]);
+
+  return (
+    <div className="flex items-center gap-1 mt-3">
+      {LEVELS.map((level, i) => {
+        const isActive = i === currentIndex;
+        const isPast = i < currentIndex;
+        const style = LEVEL_STYLE[level];
+        return (
+          <div key={level} className="flex-1 flex flex-col items-center gap-1">
+            <div
+              className="w-full h-1.5 rounded-full transition-all duration-500"
+              style={{
+                background: isPast || isActive ? style.color : "var(--border)",
+                opacity: isActive ? 1 : isPast ? 0.5 : 0.25,
+              }}
+            />
+            <span
+              className="text-xs font-bold"
+              style={{
+                color: isActive ? style.color : "var(--muted-2)",
+                fontSize: isActive ? 11 : 10,
+              }}
+            >
+              {level}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const CV_RUBRIC = [
+  { icon: "⚡", label: "Technical Depth",  desc: "Độ sâu kỹ thuật — stack đa dạng, nắm vững công nghệ cốt lõi" },
+  { icon: "🚀", label: "Project Impact",   desc: "Sức ảnh hưởng dự án — kết quả đo được, scale, độ phức tạp" },
+  { icon: "💼", label: "Experience",       desc: "Bề dày kinh nghiệm — số năm, vị trí, môi trường làm việc" },
+  { icon: "📄", label: "Presentation",     desc: "Trình bày CV — rõ ràng, có cấu trúc, dễ đọc" },
+];
+
+const CV_LEVELS = [
+  { label: "Intern",   desc: "Đang học / Chưa có KN thực tế",              color: "#94a3b8",         bg: "rgba(148,163,184,0.1)"  },
+  { label: "Fresher",  desc: "Mới ra trường, < 1 năm kinh nghiệm",         color: "var(--info)",     bg: "var(--info-bg)"         },
+  { label: "Junior",   desc: "1–2 năm, làm việc có hướng dẫn",             color: "var(--success)",  bg: "var(--success-bg)"      },
+  { label: "Middle",   desc: "2–4 năm, tự chủ, có thể mentor",             color: "var(--warning)",  bg: "var(--warning-bg)"      },
+  { label: "Senior",   desc: "4+ năm, thiết kế hệ thống, dẫn dắt team",   color: "var(--danger)",   bg: "var(--danger-bg)"       },
+];
+
+function CVRubricPanel() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((v: boolean) => !v)}
+        className="w-full flex items-center justify-between px-5 py-3 rounded-2xl text-sm font-bold transition-all"
+        style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.25)", color: "var(--primary)" }}
+      >
+        <span className="flex items-center gap-2"><span>🤖</span> AI chấm CV theo tiêu chí nào?</span>
+        <span className="text-xs transition-transform duration-200" style={{ display: "inline-block", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>▼</span>
+      </button>
+
+      {open && (
+        <div className="mt-2 rounded-2xl p-5 space-y-4 animate-fadeIn"
+          style={{ background: "var(--surface)", border: "1px solid rgba(139,92,246,0.2)" }}>
+
+          <p className="text-xs text-muted">CV được chấm theo 4 tiêu chí, thang điểm 0–100 cho từng mục.</p>
+
+          <div className="space-y-3">
+            {CV_RUBRIC.map(({ icon, label, desc }) => (
+              <div key={label} className="flex items-start gap-3">
+                <span className="text-lg shrink-0">{icon}</span>
+                <div>
+                  <p className="text-sm font-bold text-foreground">{label}</p>
+                  <p className="text-xs text-muted">{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-3 border-t space-y-2" style={{ borderColor: "var(--border)" }}>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted">5 Mức độ xếp loại (thị trường VN)</p>
+            {/* Grid 5 cột — dùng grid-cols-5 nếu tailwind có, fallback inline */}
+            <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(5, 1fr)" }}>
+              {CV_LEVELS.map(({ label, desc, color, bg }) => (
+                <div key={label} className="rounded-xl p-2.5 text-center"
+                  style={{ background: bg, border: `1px solid ${color}30` }}>
+                  <p className="text-xs font-extrabold" style={{ color }}>{label}</p>
+                  <p className="text-xs mt-1 leading-relaxed" style={{ color, opacity: 0.8 }}>{desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ProfileView({
   cvText, onChangeCvText, onAnalyze, isAnalyzing, error, result,
 }: Props) {
-  const [isUploading, setIsUploading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"overview" | "questions" | "learning">("overview");
-  const [copiedQuestion, setCopiedQuestion] = useState<number | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    try {
-      const res = await fetch("/api/parse-file", { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Lỗi đọc file");
-      onChangeCvText(data.text);
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (!file) return;
-    const fakeEvent = { target: { files: [file] } } as any;
-    handleFileUpload(fakeEvent);
-  };
-
-  const copyQuestion = (q: CVInterviewQuestion, idx: number) => {
-    navigator.clipboard.writeText(q.content);
-    setCopiedQuestion(idx);
-    setTimeout(() => setCopiedQuestion(null), 2000);
-  };
+  const {
+    activeTab, setActiveTab,
+    isUploading, fileInputRef, triggerUpload, handleFileUpload, handleDrop,
+    copiedQuestion, copyQuestion,
+  } = useProfileView(onChangeCvText);
 
   const score = result?.overallScore?.score ?? 0;
   const scoreColor =
     score >= 80 ? "var(--success)" : score >= 60 ? "var(--warning)" : "var(--danger)";
+
+  const levelStyle = LEVEL_STYLE[result?.currentLevel ?? ""] ?? {
+    color: "var(--primary-light)",
+    bg: "rgba(139,92,246,0.15)",
+    border: "rgba(139,92,246,0.3)",
+  };
+
+  // Lấy 2 trường mới từ API
+  const levelConfidence = (result as any)?.levelConfidence as string | undefined;
+  const levelNote = (result as any)?.levelNote as string | undefined;
 
   return (
     <div className="space-y-6 animate-fadeInUp">
@@ -141,10 +231,7 @@ export default function ProfileView({
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
         className="rounded-2xl p-6 transition-all duration-200"
-        style={{
-          background: "var(--surface)",
-          border: "2px dashed var(--border-bright)",
-        }}
+        style={{ background: "var(--surface)", border: "2px dashed var(--border-bright)" }}
         onDragEnter={(e) => (e.currentTarget.style.borderColor = "var(--primary)")}
         onDragLeave={(e) => (e.currentTarget.style.borderColor = "var(--border-bright)")}
       >
@@ -155,7 +242,7 @@ export default function ProfileView({
           <div className="flex items-center gap-2">
             <input type="file" accept=".pdf,.docx,.doc" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={triggerUpload}
               disabled={isUploading}
               className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors"
               style={{ background: "var(--primary-bg)", color: "var(--primary)", border: "1px solid var(--primary)" }}
@@ -194,11 +281,7 @@ export default function ProfileView({
             rows={8}
             placeholder="Paste nội dung CV vào đây..."
             className="w-full text-sm rounded-xl p-4 resize-none focus:outline-none transition-all duration-200"
-            style={{
-              background: "var(--surface-2)",
-              border: "1px solid var(--border-bright)",
-              color: "var(--foreground)",
-            }}
+            style={{ background: "var(--surface-2)", border: "1px solid var(--border-bright)", color: "var(--foreground)" }}
             onFocus={(e) => (e.target.style.borderColor = "var(--primary)")}
             onBlur={(e) => (e.target.style.borderColor = "var(--border-bright)")}
           />
@@ -211,20 +294,14 @@ export default function ProfileView({
             rows={4}
             placeholder="...hoặc paste text CV trực tiếp vào đây"
             className="w-full text-sm rounded-xl p-4 resize-none focus:outline-none transition-all duration-200 mt-3"
-            style={{
-              background: "var(--surface-2)",
-              border: "1px solid var(--border)",
-              color: "var(--foreground)",
-            }}
+            style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--foreground)" }}
             onFocus={(e) => (e.target.style.borderColor = "var(--primary)")}
             onBlur={(e) => (e.target.style.borderColor = "var(--border)")}
           />
         )}
 
         <div className="flex items-center justify-between mt-3">
-          <span className="text-xs" style={{ color: "var(--muted)" }}>
-            {cvText.length} ký tự
-          </span>
+          <span className="text-xs" style={{ color: "var(--muted)" }}>{cvText.length} ký tự</span>
           {cvText.length > 0 && cvText.trim().length < 100 && (
             <p className="text-xs" style={{ color: "var(--warning)" }}>
               ⚠️ Cần ít nhất 100 ký tự để phân tích
@@ -239,18 +316,7 @@ export default function ProfileView({
         </p>
       )}
 
-      {/* Info: Evaluation Criteria */}
-      <div className="rounded-xl p-4 flex gap-3 items-start" style={{ background: "rgba(139,92,246,0.05)", border: "1px dashed rgba(139,92,246,0.3)" }}>
-        <span className="text-lg">🤖</span>
-        <div>
-          <p className="text-xs font-bold mb-1" style={{ color: "var(--primary-light)" }}>Tiêu chí đánh giá của AI (Thang điểm 100)</p>
-          <p className="text-xs" style={{ color: "var(--muted)" }}>
-            Hồ sơ của bạn được phân tích toàn diện dựa trên 4 yếu tố chính: <b>Kỹ thuật chuyên sâu</b> (Technical Depth), <b>Sức ảnh hưởng của dự án</b> (Project Impact), <b>Bề dày kinh nghiệm</b> (Experience), và <b>Cách trình bày CV</b> (Presentation). 
-            <br className="mb-1"/>
-            Mức độ đánh giá: <b>Junior</b> (Thực tập/Mới ra trường), <b>Mid-level</b> (Có kinh nghiệm độc lập), <b>Senior</b> (Chuyên gia/Thiết kế hệ thống).
-          </p>
-        </div>
-      </div>
+      <CVRubricPanel />
 
       <button
         onClick={onAnalyze}
@@ -279,7 +345,7 @@ export default function ProfileView({
             }}
           >
             <div className="flex flex-col sm:flex-row items-center gap-6">
-              {/* Score Ring */}
+              {/* Score ring */}
               <div className="relative flex-shrink-0">
                 <ScoreRing score={score} size={100} />
                 <div
@@ -290,29 +356,63 @@ export default function ProfileView({
                 </div>
               </div>
 
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
+              <div className="flex-1 w-full">
+                {/* Name + level badge */}
+                <div className="flex flex-wrap items-center gap-2 mb-1">
                   <span className="text-xl font-extrabold" style={{ color: "var(--foreground)" }}>
                     {result.name || "Ứng viên"}
                   </span>
+
+                  {/* Level badge — màu theo level */}
                   <span
-                    className="px-2 py-0.5 rounded-full text-xs font-bold"
-                    style={{ background: "rgba(139,92,246,0.15)", color: "var(--primary-light)", border: "1px solid rgba(139,92,246,0.3)" }}
+                    className="px-2.5 py-0.5 rounded-full text-xs font-bold"
+                    style={{
+                      background: levelStyle.bg,
+                      color: levelStyle.color,
+                      border: `1px solid ${levelStyle.border}`,
+                    }}
                   >
                     {result.currentLevel}
                   </span>
+
+                  {/* Confidence badge */}
+                  {levelConfidence && (
+                    <span
+                      className="px-2 py-0.5 rounded-full text-xs font-medium"
+                      style={{
+                        background: CONFIDENCE_STYLE[levelConfidence]?.bg ?? "var(--surface-2)",
+                        color: CONFIDENCE_STYLE[levelConfidence]?.color ?? "var(--muted)",
+                        border: "1px solid transparent",
+                      }}
+                    >
+                      Độ tin cậy: {levelConfidence}
+                    </span>
+                  )}
                 </div>
-                <p className="text-sm mb-4" style={{ color: "var(--foreground-2)" }}>
+
+                {/* Level reason */}
+                <p className="text-sm mb-2" style={{ color: "var(--foreground-2)" }}>
                   {result.levelReason}
                 </p>
 
-                {/* Breakdown */}
-                <div className="grid grid-cols-2 gap-3">
+                {/* Level note — chỉ hiện nếu có */}
+                {levelNote && (
+                  <p className="text-xs mb-3 px-3 py-2 rounded-lg"
+                    style={{ background: "rgba(251,191,36,0.08)", color: "var(--warning)", border: "1px solid rgba(251,191,36,0.2)" }}>
+                    💡 {levelNote}
+                  </p>
+                )}
+
+                {/* Level progress bar */}
+                <LevelProgressBar currentLevel={result.currentLevel} />
+
+                {/* Score breakdown */}
+                <div className="grid grid-cols-2 gap-3 mt-4">
                   {[
-                    { label: "Kỹ thuật", val: result.overallScore.breakdown.technicalDepth, color: "var(--primary)" },
-                    { label: "Dự án", val: result.overallScore.breakdown.projectImpact, color: "var(--info)" },
-                    { label: "Kinh nghiệm", val: result.overallScore.breakdown.experience, color: "var(--success)" },
-                    { label: "Trình bày", val: result.overallScore.breakdown.presentation, color: "var(--warning)" },
+                    { label: "Kỹ thuật",    val: result.overallScore.breakdown.technicalDepth, color: "var(--primary)" },
+                    { label: "Dự án",        val: result.overallScore.breakdown.projectImpact,  color: "var(--info)"    },
+                    { label: "Kinh nghiệm",  val: result.overallScore.breakdown.experience,     color: "var(--success)" },
+                    { label: "Trình bày",    val: result.overallScore.breakdown.presentation,   color: "var(--warning)" },
                   ].map((item) => (
                     <div key={item.label}>
                       <div className="flex justify-between mb-1">
@@ -351,14 +451,13 @@ export default function ProfileView({
           {/* Overview Tab */}
           {activeTab === "overview" && (
             <div className="space-y-5 animate-fadeIn">
-              {/* Skills */}
               <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                 <h3 className="text-sm font-bold mb-3" style={{ color: "var(--foreground)" }}>⚡ Kỹ năng</h3>
                 <div className="space-y-3">
                   {[
-                    { label: "Kỹ thuật", items: result.skills.technical, color: "rgba(139,92,246,0.15)", textColor: "var(--primary-light)" },
-                    { label: "Công cụ", items: result.skills.tools, color: "rgba(96,165,250,0.15)", textColor: "var(--info)" },
-                    { label: "Kỹ năng mềm", items: result.skills.soft, color: "rgba(52,211,153,0.15)", textColor: "var(--success)" },
+                    { label: "Kỹ thuật",    items: result.skills.technical, color: "rgba(139,92,246,0.15)", textColor: "var(--primary-light)" },
+                    { label: "Công cụ",     items: result.skills.tools,     color: "rgba(96,165,250,0.15)",  textColor: "var(--info)"          },
+                    { label: "Kỹ năng mềm", items: result.skills.soft,      color: "rgba(52,211,153,0.15)",  textColor: "var(--success)"       },
                   ].map(({ label, items, color, textColor }) =>
                     items?.length ? (
                       <div key={label}>
@@ -377,7 +476,6 @@ export default function ProfileView({
                 </div>
               </div>
 
-              {/* Strengths & Weaknesses */}
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid rgba(52,211,153,0.2)" }}>
                   <h3 className="text-sm font-bold mb-3" style={{ color: "var(--success)" }}>✅ Điểm mạnh</h3>
@@ -404,52 +502,76 @@ export default function ProfileView({
                 </div>
               </div>
 
-              {/* Experience */}
               {result.experience?.length > 0 && (
                 <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                   <h3 className="text-sm font-bold mb-4" style={{ color: "var(--foreground)" }}>💼 Kinh nghiệm</h3>
                   <div className="space-y-4">
-                    {result.experience.map((exp, i) => (
-                      <div key={i} className="flex gap-3">
-                        <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: "var(--primary)" }} />
-                        <div>
-                          <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{exp.role}</p>
-                          <p className="text-xs" style={{ color: "var(--primary-light)" }}>{exp.company} · {exp.duration}</p>
-                          <ul className="mt-1.5 space-y-1">
-                            {exp.highlights?.map((h, hi) => (
-                              <li key={hi} className="text-xs" style={{ color: "var(--muted)" }}>• {h}</li>
-                            ))}
-                          </ul>
+                    {result.experience.map((exp, i) => {
+                      const expType = (exp as any).type as string | undefined;
+                      return (
+                        <div key={i} className="flex gap-3">
+                          <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: "var(--primary)" }} />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{exp.role}</p>
+                              {expType && (
+                                <span className="px-1.5 py-0.5 rounded text-xs"
+                                  style={{ background: "var(--surface-2)", color: "var(--muted)", fontSize: 10 }}>
+                                  {expType}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs" style={{ color: "var(--primary-light)" }}>{exp.company} · {exp.duration}</p>
+                            <ul className="mt-1.5 space-y-1">
+                              {exp.highlights?.map((h, hi) => (
+                                <li key={hi} className="text-xs" style={{ color: "var(--muted)" }}>• {h}</li>
+                              ))}
+                            </ul>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
-              {/* Projects */}
               {result.projects?.length > 0 && (
                 <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                   <h3 className="text-sm font-bold mb-4" style={{ color: "var(--foreground)" }}>🚀 Dự án</h3>
                   <div className="grid md:grid-cols-2 gap-3">
-                    {result.projects.map((proj, i) => (
-                      <div key={i} className="rounded-xl p-4"
-                        style={{ background: "var(--surface-2)", borderLeft: "3px solid var(--primary)" }}>
-                        <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{proj.name}</p>
-                        <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>{proj.description}</p>
-                        {proj.impact && (
-                          <p className="text-xs mt-1 font-medium" style={{ color: "var(--success)" }}>🎯 {proj.impact}</p>
-                        )}
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {proj.tech?.map((t) => (
-                            <span key={t} className="px-1.5 py-0.5 rounded text-xs"
-                              style={{ background: "rgba(139,92,246,0.12)", color: "var(--primary-light)" }}>
-                              {t}
-                            </span>
-                          ))}
+                    {result.projects.map((proj, i) => {
+                      const projType = (proj as any).type as string | undefined;
+                      const typeColor =
+                        projType === "Production" ? "var(--success)"
+                        : projType === "Personal"   ? "var(--info)"
+                        : "var(--muted)";
+                      return (
+                        <div key={i} className="rounded-xl p-4"
+                          style={{ background: "var(--surface-2)", borderLeft: "3px solid var(--primary)" }}>
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{proj.name}</p>
+                            {projType && (
+                              <span className="px-1.5 py-0.5 rounded text-xs flex-shrink-0"
+                                style={{ background: "var(--surface)", color: typeColor, border: `1px solid ${typeColor}40`, fontSize: 10 }}>
+                                {projType}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>{proj.description}</p>
+                          {proj.impact && (
+                            <p className="text-xs mt-1 font-medium" style={{ color: "var(--success)" }}>🎯 {proj.impact}</p>
+                          )}
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {proj.tech?.map((t) => (
+                              <span key={t} className="px-1.5 py-0.5 rounded text-xs"
+                                style={{ background: "rgba(139,92,246,0.12)", color: "var(--primary-light)" }}>
+                                {t}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

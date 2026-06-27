@@ -6,7 +6,14 @@ export type AIReviewResult = {
   strengths: string;
   gaps: string;
   improvements: string;
+  example: string;
   score: number;
+  categoryScores?: {
+    technical: number;
+    problemSolving: number;
+    communication: number;
+    bestPractices: number;
+  };
 };
 
 export function useAIReview() {
@@ -31,7 +38,7 @@ export function useAIReview() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error ?? "Có lỗi xảy ra."); // throw thay vì return null
+        throw new Error(data.error ?? "Có lỗi xảy ra.");
       }
 
       return data as AIReviewResult;
@@ -44,4 +51,4 @@ export function useAIReview() {
   };
 
   return { review, isReviewing, error };
-}
+} 

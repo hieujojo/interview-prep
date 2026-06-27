@@ -4,6 +4,8 @@ import { useAIReview } from "@/hooks/useAIReview";
 import { useTopics } from "@/hooks/useTopics";
 import { useInterviewSession, formatTime } from "@/hooks/useInterviewSession";
 import { NoteDrawer } from '@/components/notes/NoteDrawer';
+import { ScoreBreakdown } from "@/components/interview/ScoreBreakdown";
+import { useState } from 'react';
 
 function getTopicLogo(topicName: string) {
   const name = topicName.toLowerCase();
@@ -44,6 +46,111 @@ function FeedbackSection({ icon, label, content, color, bg }: {
   );
 }
 
+function ExampleBlock({ content }: { content: string }) {
+  return (
+    <div
+      className="rounded-2xl p-5"
+      style={{
+        background: "rgba(99,102,241,0.07)",
+        border: "1px solid rgba(99,102,241,0.25)",
+        borderLeft: "4px solid var(--primary)",
+      }}
+    >
+      <p
+        className="text-[13px] font-extrabold uppercase tracking-widest mb-3 flex items-center gap-2"
+        style={{ color: "var(--primary)" }}
+      >
+        <span className="text-lg">📌</span> Câu trả lời mẫu
+      </p>
+      <pre className="text-[14px] font-mono whitespace-pre-wrap leading-relaxed text-foreground overflow-x-auto">
+        {content}
+      </pre>
+    </div>
+  );
+}
+
+const RUBRIC_ITEMS = [
+  { icon: "🎯", label: "Technical Accuracy", weight: 40, desc: "Độ chính xác kỹ thuật — kiến thức đúng, không sai khái niệm" },
+  { icon: "🧩", label: "Problem Solving", weight: 25, desc: "Tư duy phân tích, có hướng giải quyết rõ ràng" },
+  { icon: "💬", label: "Communication", weight: 20, desc: "Diễn đạt mạch lạc, có cấu trúc, dễ hiểu" },
+  { icon: "⭐", label: "Best Practices", weight: 15, desc: "Đề cập kinh nghiệm thực tế, best practices" },
+];
+
+function RubricPanel() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <button
+        onClick={() => setOpen((v: boolean) => !v)}
+        className="w-full flex items-center justify-between px-5 py-3 rounded-2xl text-sm font-bold transition-all"
+        style={{
+          background: "rgba(139,92,246,0.08)",
+          border: "1px solid rgba(139,92,246,0.25)",
+          color: "var(--primary)",
+        }}
+      >
+        <span className="flex items-center gap-2">
+          <span>📊</span> AI chấm điểm theo tiêu chí nào?
+        </span>
+        <span className="text-xs transition-transform duration-200" style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>
+          ▼
+        </span>
+      </button>
+
+      {open && (
+        <div
+          className="mt-2 rounded-2xl p-5 space-y-3 animate-fadeIn"
+          style={{ background: "var(--surface)", border: "1px solid rgba(139,92,246,0.2)" }}
+        >
+          <p className="text-xs text-muted mb-4">
+            Mỗi câu trả lời được AI chấm theo 4 tiêu chí sau. Điểm tổng = tổng điểm có trọng số.
+          </p>
+          {RUBRIC_ITEMS.map(({ icon, label, weight, desc }) => (
+            <div key={label} className="flex items-start gap-3">
+              <span className="text-lg shrink-0">{icon}</span>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-sm font-bold text-foreground">{label}</span>
+                  <span
+                    className="text-xs font-extrabold px-2 py-0.5 rounded-full"
+                    style={{ background: "rgba(139,92,246,0.15)", color: "var(--primary)" }}
+                  >
+                    ×{weight}%
+                  </span>
+                </div>
+                <p className="text-xs text-muted">{desc}</p>
+              </div>
+            </div>
+          ))}
+          <div
+            className="pt-3 mt-2 border-t space-y-3"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <p className="text-xs font-bold uppercase tracking-widest text-muted">Thang điểm chung</p>
+            <div className="grid grid-cols-4 gap-2 text-center text-xs">
+              {[
+                { range: "8–10", label: "Xuất sắc", color: "var(--success)", bg: "var(--success-bg)" },
+                { range: "5–7", label: "Đạt", color: "var(--warning)", bg: "var(--warning-bg)" },
+                { range: "1–4", label: "Yếu", color: "var(--danger)", bg: "var(--danger-bg)" },
+                { range: "0", label: "Không có", color: "var(--muted)", bg: "var(--surface)" },
+              ].map(({ range, label, color, bg }) => (
+                <div key={range} className="rounded-xl py-2 px-1" style={{ background: bg, border: `1px solid ${color}30` }}>
+                  <p className="font-extrabold text-sm" style={{ color }}>{range}</p>
+                  <p style={{ color }} className="opacity-80 mt-0.5">{label}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted font-mono">
+              Điểm tổng = (Technical×0.4) + (Problem×0.25) + (Comm×0.2) + (Best×0.15)
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const InterviewView = () => {
   const { review } = useAIReview();
   const {
@@ -51,7 +158,7 @@ export const InterviewView = () => {
     expandedTopics, expandTopic, collapseTopic,
     categorySelections, toggleCategory,
     topicCounts, setCountForTopic, getMaxForTopic, getCountForTopic,
-    mode, setMode,clearCategorySelection 
+    mode, setMode, clearCategorySelection
   } = useTopics();
 
   const {
@@ -69,6 +176,7 @@ export const InterviewView = () => {
     updateNote,
     isNoteDrawerOpen,
     setIsNoteDrawerOpen,
+    isRegenerating, regenerateError, handleRegenerate
   } = useInterviewSession(review);
 
   // ── Setup Screen ──
@@ -131,7 +239,6 @@ export const InterviewView = () => {
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {topics.map((topic) => {
-                // active state khác nhau tùy mode
                 const active = mode === "quick"
                   ? !!selectedTopics[topic.name]
                   : expandedTopics.has(topic.name) || categorySelections.has(topic.name);
@@ -148,15 +255,12 @@ export const InterviewView = () => {
                         const hasCategories = categorySelections.has(topic.name);
 
                         if (isCurrentlyExpanded) {
-                          // Đang mở → collapse
                           collapseTopic(topic.name);
                           clearCategorySelection(topic.name);
                         } else if (hasCategories) {
-                          // Có category nhưng panel đang đóng → bấm lần nữa = bỏ chọn hoàn toàn
                           collapseTopic(topic.name);
-                          clearCategorySelection(topic.name); // cần thêm hàm này
+                          clearCategorySelection(topic.name);
                         } else {
-                          // Chưa có gì → expand
                           expandTopic(topic.name);
                         }
                       }
@@ -181,7 +285,6 @@ export const InterviewView = () => {
                       </div>
                     </div>
 
-                    {/* Input số câu — quick mode dùng selectedTopics, custom mode dùng getCountForTopic */}
                     {mode === "quick" && !!selectedTopics[topic.name] && (
                       <div className="pt-3 border-t border-border mt-1" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between animate-fadeIn">
@@ -227,7 +330,6 @@ export const InterviewView = () => {
               })}
             </div>
 
-            {/* Panel category */}
             {mode === "custom" && expandedTopics.size > 0 && (
               <div
                 className="rounded-2xl p-5 animate-fadeIn space-y-5"
@@ -272,7 +374,8 @@ export const InterviewView = () => {
               </div>
             )}
 
-            {/* Tổng quan */}
+            <RubricPanel />
+
             <div className="max-w-2xl mx-auto rounded-3xl p-6 relative overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.1), rgba(99,102,241,0.05))", border: "1px solid rgba(139,92,246,0.3)", boxShadow: "0 20px 40px -15px rgba(139,92,246,0.15)" }}>
               <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div>
@@ -383,6 +486,7 @@ export const InterviewView = () => {
                     <p className="font-bold text-[15px] leading-relaxed text-foreground">{ans.question.content}</p>
                   </div>
                 </div>
+                {ans.feedback && <ScoreBreakdown feedback={ans.feedback} />}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                   <div className="p-4 bg-surface-hover rounded-2xl text-sm border border-border">
                     <p className="text-danger text-xs font-bold mb-2 uppercase tracking-widest flex items-center gap-2"><span>⚠️</span> Bạn đã trả lời</p>
@@ -393,6 +497,10 @@ export const InterviewView = () => {
                     <p className="leading-relaxed whitespace-pre-wrap">{ans.feedback?.improvements}</p>
                   </div>
                 </div>
+                {/* ExampleBlock trong Finish Screen */}
+                {ans.feedback?.example && (
+                  <ExampleBlock content={ans.feedback.example} />
+                )}
               </div>
             ))}
           </div>
@@ -499,9 +607,30 @@ export const InterviewView = () => {
               <FeedbackSection icon="✅" label="Điểm mạnh ấn tượng" content={current.feedback.strengths} color="var(--success)" bg="var(--success-bg)" />
               <FeedbackSection icon="⚠️" label="Lỗ hổng cần vá" content={current.feedback.gaps} color="var(--warning)" bg="var(--warning-bg)" />
               <FeedbackSection icon="💡" label="Cách upgrade câu trả lời" content={current.feedback.improvements} color="var(--info)" bg="var(--info-bg)" />
-              <button onClick={handleNext} className="btn-gradient w-full py-4 rounded-2xl text-[15px] font-extrabold flex items-center justify-center gap-2 mt-6 shadow-xl shadow-primary/20 transition-all active:scale-[0.98]">
-                {isLastQuestion ? "🏁 Hoàn tất phiên phỏng vấn" : "🚀 Tiếp tục câu tiếp theo"}
-              </button>
+              {/* ExampleBlock — ô riêng biệt cho code minh hoạ */}
+              {current.feedback.example && (
+                <ExampleBlock content={current.feedback.example} />
+              )}
+              {current.feedback && <ScoreBreakdown feedback={current.feedback} />}
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <button
+                  onClick={handleRegenerate}
+                  disabled={isRegenerating}
+                  className="flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold border border-border bg-surface hover:border-primary hover:text-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isRegenerating
+                    ? <><span className="animate-spin">⏳</span> Đang tạo lại...</>
+                    : <><span>🔄</span> Regenerate</>
+                  }
+                </button>
+                <button onClick={handleNext} className="btn-gradient flex-1 py-3 rounded-2xl text-[15px] font-extrabold ...">
+                  {isLastQuestion ? "🏁 Hoàn tất" : "🚀 Câu tiếp theo"}
+                </button>
+              </div>
+
+              {regenerateError && (
+                <p className="text-sm p-3 rounded-xl text-danger bg-danger-bg">{regenerateError}</p>
+              )}
             </div>
           </div>
         )}
