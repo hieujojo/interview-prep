@@ -63,7 +63,7 @@ export function useInterviewSession(reviewFn: ReviewFn) {
   const [selections, setSelections] = useState<TopicSelection[] | null>(null);
   const [selectedTopics, setSelectedTopics] = useState<Record<string, number>>({});
 
-  const router = useRouter();   
+  const router = useRouter();
   const totalQuestionsSelected = Object.values(selectedTopics).reduce((a, b) => a + b, 0);
 
   const handleToggleTopic = (topicName: string, maxCount: number) => {
@@ -291,6 +291,32 @@ export function useInterviewSession(reviewFn: ReviewFn) {
     }
   };
 
+  // Thêm state
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [regenerateError, setRegenerateError] = useState<string | null>(null);
+
+  const handleRegenerate = async () => {
+    if (!currentQuestion || !current) return;
+    setIsRegenerating(true);
+    setRegenerateError(null);
+    try {
+      const result = await reviewFn(
+        currentQuestion.category,
+        currentQuestion.content,
+        current.userAnswer  // giữ nguyên userAnswer gốc
+      );
+      if (result) {
+        setFeedback(result);
+      } else {
+        setRegenerateError("Không thể tạo lại phản hồi. Vui lòng thử lại.");
+      }
+    } catch (err) {
+      setRegenerateError(err instanceof Error ? err.message : "Lỗi regenerate.");
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
   useEffect(() => {
     if (timeLeft !== 0 || !current || current.feedback || isReviewing || isFinished) return;
     if (current.userAnswer.trim().length === 0) setUserAnswer("Hết giờ - Không có câu trả lời.");
@@ -434,5 +460,6 @@ export function useInterviewSession(reviewFn: ReviewFn) {
     saveError,
     isSaved,
     isFocusMode: !!selections && !isFinished,
+    isRegenerating, regenerateError, handleRegenerate
   };
 }
