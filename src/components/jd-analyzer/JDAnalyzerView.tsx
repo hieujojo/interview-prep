@@ -3,6 +3,7 @@
 import CVJDMatchView from "./CVJDMatchView";
 import EmailDraftModal from "./EmailDraftModal";
 import { useJDAnalyzerView } from "@/hooks/useJDAnalyzerView";
+import { useState } from "react";
 
 const DIFFICULTY_STYLE: Record<string, { color: string; bg: string }> = {
   "Cơ bản": { color: "var(--success)", bg: "var(--success-bg)" },
@@ -24,6 +25,75 @@ const TECH_MATURITY_COLOR: Record<string, string> = {
   "Scale-up": "var(--info)",
   Enterprise: "var(--success)",
 };
+
+const JD_CRITERIA = [
+  { icon: "🎯", label: "Kỹ năng cốt lõi",       desc: "Công nghệ, framework bắt buộc được nhấn mạnh trong JD" },
+  { icon: "📅", label: "Số năm kinh nghiệm",     desc: "Yêu cầu kinh nghiệm tổng thể và theo từng mảng" },
+  { icon: "🏗️", label: "Trách nhiệm công việc",  desc: "Scope công việc, độ phức tạp của hệ thống cần xây dựng" },
+  { icon: "🏢", label: "Môi trường & Văn hóa",   desc: "Startup / Scale-up / Enterprise, Remote / Hybrid / On-site" },
+];
+
+const JD_OUTPUTS = [
+  { icon: "📊", label: "Level ước tính",    desc: "Junior / Mid / Senior / Lead dựa trên yêu cầu JD" },
+  { icon: "💰", label: "Mức lương",         desc: "Ước tính theo thị trường Việt Nam" },
+  { icon: "❓", label: "Bộ câu hỏi",        desc: "15–20 câu Technical, System Design, Behavioral" },
+  { icon: "💻", label: "Bài tập Coding",    desc: "2–3 bài mini phù hợp với tech stack JD" },
+  { icon: "📚", label: "Lộ trình học",      desc: "Ưu tiên theo kỹ năng còn thiếu so với JD" },
+];
+
+function JDRubricPanel() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="mb-4">
+      <button
+        onClick={() => setOpen((v: boolean) => !v)}
+        className="w-full flex items-center justify-between px-5 py-3 rounded-2xl text-sm font-bold transition-all"
+        style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.25)", color: "var(--primary)" }}
+      >
+        <span className="flex items-center gap-2"><span>🤖</span> AI phân tích JD như thế nào?</span>
+        <span className="text-xs transition-transform duration-200" style={{ display: "inline-block", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>▼</span>
+      </button>
+
+      {open && (
+        <div className="mt-2 rounded-2xl p-5 space-y-4 animate-fadeIn"
+          style={{ background: "var(--surface)", border: "1px solid rgba(139,92,246,0.2)" }}>
+
+          <div className="space-y-1">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted">Tiêu chí đọc JD</p>
+            <div className="space-y-3 pt-1">
+              {JD_CRITERIA.map(({ icon, label, desc }) => (
+                <div key={label} className="flex items-start gap-3">
+                  <span className="text-lg shrink-0">{icon}</span>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">{label}</p>
+                    <p className="text-xs text-muted">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="pt-3 border-t space-y-2" style={{ borderColor: "var(--border)" }}>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted">Kết quả bạn nhận được</p>
+            <div className="grid grid-cols-1 gap-2 pt-1">
+              {JD_OUTPUTS.map(({ icon, label, desc }) => (
+                <div key={label} className="flex items-center gap-3 px-3 py-2 rounded-xl"
+                  style={{ background: "rgba(139,92,246,0.06)", border: "1px solid rgba(139,92,246,0.15)" }}>
+                  <span className="text-base shrink-0">{icon}</span>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-xs font-bold text-foreground">{label}</p>
+                    <p className="text-xs text-muted">— {desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function JDAnalyzerView() {
   const {
@@ -112,18 +182,7 @@ export default function JDAnalyzerView() {
         </p>
       )}
 
-      {/* Info: Evaluation Criteria */}
-      <div className="rounded-xl p-4 flex gap-3 items-start mb-4" style={{ background: "rgba(139,92,246,0.05)", border: "1px dashed rgba(139,92,246,0.3)" }}>
-        <span className="text-lg">🤖</span>
-        <div>
-          <p className="text-xs font-bold mb-1" style={{ color: "var(--primary-light)" }}>Tiêu chí đánh giá của AI đối với JD</p>
-          <p className="text-xs" style={{ color: "var(--muted)" }}>
-            Job Description (JD) sẽ được AI đánh giá mức độ chuyên môn dựa trên các yếu tố: <b>Yêu cầu kỹ năng cốt lõi</b>, <b>Số năm kinh nghiệm</b>, <b>Trách nhiệm công việc</b>, và <b>Mức độ phức tạp của hệ thống</b>.
-            <br className="mb-1" />
-            Kết quả sẽ bao gồm: <b>Level ước tính</b> (Junior, Mid-level, Senior, Lead...), <b>Mức lương tham khảo</b> tại thị trường Việt Nam, và <b>Bộ câu hỏi phỏng vấn</b> được thiết kế riêng biệt cho JD này.
-          </p>
-        </div>
-      </div>
+    <JDRubricPanel />
 
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-3">
