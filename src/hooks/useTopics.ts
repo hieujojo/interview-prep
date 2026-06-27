@@ -67,14 +67,30 @@ export function useTopics() {
     fetchTopics();
   }, []);
 
-  const toggleExpandTopic = (topicName: string) => {
+  /**
+   * Chỉ expand topic vào panel category, không toggle.
+   * Gọi khi user click chọn topic mới trong custom mode.
+   */
+  const expandTopic = (topicName: string) => {
     setExpandedTopics((prev) => {
       const next = new Set(prev);
-      if (next.has(topicName)) next.delete(topicName);
-      else next.add(topicName);
+      next.add(topicName);
       return next;
     });
   };
+
+  /**
+   * Collapse (ẩn) topic khỏi panel category.
+   * Gọi khi user bấm nút X trong panel hoặc bỏ chọn topic.
+   */
+  const collapseTopic = (topicName: string) => {
+    setExpandedTopics((prev) => {
+      const next = new Set(prev);
+      next.delete(topicName);
+      return next;
+    });
+  };
+
   /**
    * Toggle 1 category chip trong expanded panel.
    * - Nếu chưa có Set → tạo mới với category này
@@ -101,6 +117,14 @@ export function useTopics() {
     });
   };
 
+  const clearCategorySelection = (topicName: string) => {
+    setCategorySelections((prev) => {
+      const next = new Map(prev);
+      next.delete(topicName);
+      return next;
+    });
+  };
+
   /**
    * Tính số câu thực sự được chọn cho 1 topic,
    * dựa trên các category đang active.
@@ -119,14 +143,16 @@ export function useTopics() {
 
   const getMaxForTopic = (topic: Topic): number => {
     const cats = categorySelections.get(topic.name);
-    if (!cats || cats.size === 0) return topic.questionCount;
-    return topic.categories
-      .filter((c) => cats.has(c.name))
-      .reduce((sum, c) => sum + c.count, 0);
+    const result = !cats || cats.size === 0
+      ? topic.questionCount
+      : topic.categories.filter((c) => cats.has(c.name)).reduce((sum, c) => sum + c.count, 0);
+
+    return result;
   };
 
   const getCountForTopic = (topicName: string, max: number): number => {
-    return topicCounts.get(topicName) ?? Math.min(10, max);
+    const result = topicCounts.get(topicName) ?? Math.min(10, max);
+    return result;
   };
 
   return {
@@ -136,7 +162,8 @@ export function useTopics() {
     mode,
     setMode,
     expandedTopics,
-    toggleExpandTopic,
+    expandTopic,
+    collapseTopic,
     // category selection
     categorySelections,
     toggleCategory,
@@ -145,5 +172,6 @@ export function useTopics() {
     setCountForTopic,
     getMaxForTopic,
     getCountForTopic,
+    clearCategorySelection
   };
-}
+} 
