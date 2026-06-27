@@ -7,6 +7,12 @@ export type AIReviewResult = {
   gaps: string;
   improvements: string;
   score: number;
+  categoryScores?: {
+    technical: number;
+    problemSolving: number;
+    communication: number;
+    bestPractices: number;
+  };
 };
 
 export function useAIReview() {
