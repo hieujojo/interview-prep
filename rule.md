@@ -35,11 +35,12 @@ fix: remove duplicate supabase client, save answers to DB. Closes #11
 - `cv_analyses` ✅ RLS (Đã tạo để lưu CV analysis, bao gồm: cv_text, skills, experience, projects, education, strengths, weaknesses, learning_recommendations, interview_questions, overall_score, name, current_level, level_reason; Đã thêm `user_id UUID`)
 - `jd_analyses` ✅ RLS (Đã ALTER `session_id` → nullable; `questions_json` chứa levelReason, focusSkills, questions, exercises; Đã thêm `user_id UUID`)
 - `question_bank` ✅ RLS (Public read-only policy)
-- `question_overview` (View - không cần RLS)
 - `sessions` ✅ RLS (Lưu interview sessions: `type`, `topic`, `user_id UUID`, `created_at`; INSERT + SELECT policy cho authenticated user)
 - `topics` ✅ RLS (Public read-only policy)
 - `user_stats` ✅ RLS (Đã thêm cột `user_id UUID`)
-- `session_notes` ✅ RLS (question_index, question_content, note_text per session).
+- `notes` ✅ RLS (question_index, question_content, note_text per session).
+- `achivement` ✅ RLS
+
 
 ## ⚠️ RULES FOR AI AGENTS (SUPABASE)
 1. **No custom clients:** Luôn import `supabase` từ `@/lib/supabase`. Tuyệt đối không `createBrowserClient` trong hook.
