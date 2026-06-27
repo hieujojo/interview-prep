@@ -5,6 +5,7 @@ import { useTopics } from "@/hooks/useTopics";
 import { useInterviewSession, formatTime } from "@/hooks/useInterviewSession";
 import { NoteDrawer } from '@/components/notes/NoteDrawer';
 import { ScoreBreakdown } from "@/components/interview/ScoreBreakdown";
+import { useState } from 'react';
 
 function getTopicLogo(topicName: string) {
   const name = topicName.toLowerCase();
@@ -41,6 +42,88 @@ function FeedbackSection({ icon, label, content, color, bg }: {
         <span className="text-lg">{icon}</span> {label}
       </p>
       <p className="text-[15px] whitespace-pre-wrap leading-relaxed text-foreground">{content}</p>
+    </div>
+  );
+}
+
+const RUBRIC_ITEMS = [
+  { icon: "🎯", label: "Technical Accuracy", weight: 40, desc: "Độ chính xác kỹ thuật — kiến thức đúng, không sai khái niệm" },
+  { icon: "🧩", label: "Problem Solving", weight: 25, desc: "Tư duy phân tích, có hướng giải quyết rõ ràng" },
+  { icon: "💬", label: "Communication", weight: 20, desc: "Diễn đạt mạch lạc, có cấu trúc, dễ hiểu" },
+  { icon: "⭐", label: "Best Practices", weight: 15, desc: "Đề cập kinh nghiệm thực tế, best practices" },
+];
+
+function RubricPanel() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <button
+        onClick={() => setOpen((v: boolean) => !v)}
+        className="w-full flex items-center justify-between px-5 py-3 rounded-2xl text-sm font-bold transition-all"
+        style={{
+          background: "rgba(139,92,246,0.08)",
+          border: "1px solid rgba(139,92,246,0.25)",
+          color: "var(--primary)",
+        }}
+      >
+        <span className="flex items-center gap-2">
+          <span>📊</span> AI chấm điểm theo tiêu chí nào?
+        </span>
+        <span className="text-xs transition-transform duration-200" style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>
+          ▼
+        </span>
+      </button>
+
+      {open && (
+        <div
+          className="mt-2 rounded-2xl p-5 space-y-3 animate-fadeIn"
+          style={{ background: "var(--surface)", border: "1px solid rgba(139,92,246,0.2)" }}
+        >
+          <p className="text-xs text-muted mb-4">
+            Mỗi câu trả lời được AI chấm theo 4 tiêu chí sau. Điểm tổng = tổng điểm có trọng số.
+          </p>
+          {RUBRIC_ITEMS.map(({ icon, label, weight, desc }) => (
+            <div key={label} className="flex items-start gap-3">
+              <span className="text-lg shrink-0">{icon}</span>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-sm font-bold text-foreground">{label}</span>
+                  <span
+                    className="text-xs font-extrabold px-2 py-0.5 rounded-full"
+                    style={{ background: "rgba(139,92,246,0.15)", color: "var(--primary)" }}
+                  >
+                    ×{weight}%
+                  </span>
+                </div>
+                <p className="text-xs text-muted">{desc}</p>
+              </div>
+            </div>
+          ))}
+          <div
+            className="pt-3 mt-2 border-t space-y-3"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <p className="text-xs font-bold uppercase tracking-widest text-muted">Thang điểm chung</p>
+            <div className="grid grid-cols-4 gap-2 text-center text-xs">
+              {[
+                { range: "8–10", label: "Xuất sắc", color: "var(--success)", bg: "var(--success-bg)" },
+                { range: "5–7", label: "Đạt", color: "var(--warning)", bg: "var(--warning-bg)" },
+                { range: "1–4", label: "Yếu", color: "var(--danger)", bg: "var(--danger-bg)" },
+                { range: "0", label: "Không có", color: "var(--muted)", bg: "var(--surface)" },
+              ].map(({ range, label, color, bg }) => (
+                <div key={range} className="rounded-xl py-2 px-1" style={{ background: bg, border: `1px solid ${color}30` }}>
+                  <p className="font-extrabold text-sm" style={{ color }}>{range}</p>
+                  <p style={{ color }} className="opacity-80 mt-0.5">{label}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted font-mono">
+              Điểm tổng = (Technical×0.4) + (Problem×0.25) + (Comm×0.2) + (Best×0.15)
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -274,6 +357,7 @@ export const InterviewView = () => {
               </div>
             )}
 
+            <RubricPanel />
             {/* Tổng quan */}
             <div className="max-w-2xl mx-auto rounded-3xl p-6 relative overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.1), rgba(99,102,241,0.05))", border: "1px solid rgba(139,92,246,0.3)", boxShadow: "0 20px 40px -15px rgba(139,92,246,0.15)" }}>
               <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
