@@ -44,60 +44,27 @@ function FeedbackSection({ icon, label, content, color, bg }: {
   );
 }
 
-// Thêm component tooltip nhỏ này ngay trên InterviewView hoặc trong cùng file
-function ModeTooltip({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none">
-      <div
-        className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap leading-relaxed text-center"
-        style={{
-          background: "var(--surface)",
-          border: "1px solid rgba(139,92,246,0.35)",
-          color: "var(--foreground)",
-          boxShadow: "0 8px 24px -4px rgba(0,0,0,0.4)",
-        }}
-      >
-        {children}
-      </div>
-      {/* Arrow */}
-      <div
-        className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0"
-        style={{
-          borderLeft: "6px solid transparent",
-          borderRight: "6px solid transparent",
-          borderTop: "6px solid rgba(139,92,246,0.35)",
-        }}
-      />
-    </div>
-  );
-}
-
 export const InterviewView = () => {
   const { review } = useAIReview();
-  const { topics, isLoading, error: topicsError, expandedTopics, toggleExpandTopic,
-    categorySelections, toggleCategory, getSelectedCountForTopic,
+  const {
+    topics, isLoading, error: topicsError,
+    expandedTopics, expandTopic, collapseTopic,
+    categorySelections, toggleCategory,
     topicCounts, setCountForTopic, getMaxForTopic, getCountForTopic,
-    mode, setMode } = useTopics();
+    mode, setMode,clearCategorySelection 
+  } = useTopics();
 
   const {
-    // setup
     selections, setSelections, selectedTopics, totalQuestionsSelected,
     handleToggleTopic, handleUpdateCount, startSession, resetSession,
-    // questions
     questions, isLoadingQuestions, loadError,
     currentIndex, currentQuestion, current, isLastQuestion, isFinished, answers,
     setUserAnswer,
-    // timer
     timeLeft,
-    // hint
     isHinting, currentHint, requestHint,
-    // voice
     isListening, toggleListening,
-    // review
     isReviewing, reviewError, handleSubmitReview, handleNext,
-    // save
     isSaving, saveError, isSaved,
-    // notes
     inProgressNotes,
     updateNote,
     isNoteDrawerOpen,
@@ -117,8 +84,6 @@ export const InterviewView = () => {
           </p>
 
           <div className="relative flex items-center justify-center gap-2 mt-4 p-1 rounded-2xl bg-surface border border-border w-fit mx-auto">
-
-            {/* Sliding indicator */}
             <div
               className="absolute top-1 bottom-1 rounded-xl bg-primary shadow-md transition-all duration-300 ease-in-out"
               style={{
@@ -130,67 +95,32 @@ export const InterviewView = () => {
             <div className="relative group">
               <button
                 onClick={() => setMode("quick")}
-                className={`relative z-10 px-5 py-2 rounded-xl text-sm font-bold transition-colors duration-300 ${mode === "quick" ? "text-white" : "text-muted hover:text-foreground"
-                  }`}
+                className={`relative z-10 px-5 py-2 rounded-xl text-sm font-bold transition-colors duration-300 ${mode === "quick" ? "text-white" : "text-muted hover:text-foreground"}`}
               >
                 ⚡ Quick Mode
               </button>
-              {/* tooltip Quick Mode giữ nguyên */}
               <div className="opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-200 ease-out pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50">
-                <div
-                  className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap"
-                  style={{
-                    background: "var(--surface)",
-                    border: "1px solid rgba(139,92,246,0.35)",
-                    color: "var(--foreground)",
-                    boxShadow: "0 8px 24px -4px rgba(0,0,0,0.4)",
-                  }}
-                >
+                <div className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap" style={{ background: "var(--surface)", border: "1px solid rgba(139,92,246,0.35)", color: "var(--foreground)", boxShadow: "0 8px 24px -4px rgba(0,0,0,0.4)" }}>
                   🎲 Chọn chủ đề & số câu, hệ thống tự trộn ngẫu nhiên
                 </div>
-                <div
-                  className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0"
-                  style={{
-                    borderLeft: "6px solid transparent",
-                    borderRight: "6px solid transparent",
-                    borderTop: "6px solid rgba(139,92,246,0.35)",
-                  }}
-                />
+                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0" style={{ borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: "6px solid rgba(139,92,246,0.35)" }} />
               </div>
             </div>
 
             <div className="relative group">
               <button
                 onClick={() => setMode("custom")}
-                className={`relative z-10 px-5 py-2 rounded-xl text-sm font-bold transition-colors duration-300 ${mode === "custom" ? "text-white" : "text-muted hover:text-foreground"
-                  }`}
+                className={`relative z-10 px-5 py-2 rounded-xl text-sm font-bold transition-colors duration-300 ${mode === "custom" ? "text-white" : "text-muted hover:text-foreground"}`}
               >
                 🎯 Chế độ tùy chỉnh
               </button>
-              {/* tooltip Custom Mode giữ nguyên */}
               <div className="opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-200 ease-out pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50">
-                <div
-                  className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap"
-                  style={{
-                    background: "var(--surface)",
-                    border: "1px solid rgba(139,92,246,0.35)",
-                    color: "var(--foreground)",
-                    boxShadow: "0 8px 24px -4px rgba(0,0,0,0.4)",
-                  }}
-                >
+                <div className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap" style={{ background: "var(--surface)", border: "1px solid rgba(139,92,246,0.35)", color: "var(--foreground)", boxShadow: "0 8px 24px -4px rgba(0,0,0,0.4)" }}>
                   🗂️ Tự chọn danh mục cụ thể trong từng chủ đề
                 </div>
-                <div
-                  className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0"
-                  style={{
-                    borderLeft: "6px solid transparent",
-                    borderRight: "6px solid transparent",
-                    borderTop: "6px solid rgba(139,92,246,0.35)",
-                  }}
-                />
+                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0" style={{ borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: "6px solid rgba(139,92,246,0.35)" }} />
               </div>
             </div>
-
           </div>
         </div>
 
@@ -201,16 +131,35 @@ export const InterviewView = () => {
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {topics.map((topic) => {
-                const active = !!selectedTopics[topic.name];
-                const isExpanded = expandedTopics.has(topic.name); // ← dùng Set
+                // active state khác nhau tùy mode
+                const active = mode === "quick"
+                  ? !!selectedTopics[topic.name]
+                  : expandedTopics.has(topic.name) || categorySelections.has(topic.name);
 
                 return (
                   <div
                     key={topic.id}
                     className="flex flex-col gap-3 p-5 rounded-2xl transition-all duration-300 relative overflow-hidden group cursor-pointer"
                     onClick={() => {
-                      handleToggleTopic(topic.name, topic.questionCount);
-                      if (mode === "custom") toggleExpandTopic(topic.name);
+                      if (mode === "quick") {
+                        handleToggleTopic(topic.name, topic.questionCount);
+                      } else {
+                        const isCurrentlyExpanded = expandedTopics.has(topic.name);
+                        const hasCategories = categorySelections.has(topic.name);
+
+                        if (isCurrentlyExpanded) {
+                          // Đang mở → collapse
+                          collapseTopic(topic.name);
+                          clearCategorySelection(topic.name);
+                        } else if (hasCategories) {
+                          // Có category nhưng panel đang đóng → bấm lần nữa = bỏ chọn hoàn toàn
+                          collapseTopic(topic.name);
+                          clearCategorySelection(topic.name); // cần thêm hàm này
+                        } else {
+                          // Chưa có gì → expand
+                          expandTopic(topic.name);
+                        }
+                      }
                     }}
                     style={{
                       background: active ? "rgba(139,92,246,0.12)" : "var(--surface)",
@@ -219,7 +168,6 @@ export const InterviewView = () => {
                       boxShadow: active ? "0 10px 25px -5px rgba(139,92,246,0.2)" : "0 4px 6px -1px rgba(0,0,0,0.1)",
                     }}
                   >
-                    {/* Header topic — giữ nguyên */}
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 shrink-0 flex items-center justify-center bg-white/5 rounded-xl border border-white/10 p-1">
                         <TopicLogo name={topic.name} />
@@ -233,32 +181,19 @@ export const InterviewView = () => {
                       </div>
                     </div>
 
-                    {/* Số câu chọn — giữ nguyên */}
-                    {active && (
+                    {/* Input số câu — quick mode dùng selectedTopics, custom mode dùng getCountForTopic */}
+                    {mode === "quick" && !!selectedTopics[topic.name] && (
                       <div className="pt-3 border-t border-border mt-1" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between animate-fadeIn">
-                          <span className="text-sm font-medium text-muted">
-                            Số câu chọn:
-                            {mode === "custom" && (
-                              <span className="text-xs text-primary ml-1">(max {getMaxForTopic(topic)})</span>
-                            )}
-                          </span>
+                          <span className="text-sm font-medium text-muted">Số câu chọn:</span>
                           <input
                             type="number"
                             min={1}
-                            max={mode === "custom" ? getMaxForTopic(topic) : topic.questionCount}
-                            value={
-                              mode === "custom"
-                                ? getCountForTopic(topic.name, getMaxForTopic(topic))
-                                : selectedTopics[topic.name]
-                            }
+                            max={topic.questionCount}
+                            value={selectedTopics[topic.name]}
                             onChange={(e) => {
                               const val = parseInt(e.target.value) || 0;
-                              if (mode === "custom") {
-                                setCountForTopic(topic.name, Math.min(val, getMaxForTopic(topic)));
-                              } else {
-                                handleUpdateCount(topic.name, val, topic.questionCount);
-                              }
+                              handleUpdateCount(topic.name, val, topic.questionCount);
                             }}
                             className="w-16 px-2 py-1 text-sm font-bold rounded-lg bg-surface-2 border border-border focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-center transition-all"
                           />
@@ -266,19 +201,37 @@ export const InterviewView = () => {
                       </div>
                     )}
 
+                    {mode === "custom" && categorySelections.has(topic.name) && (
+                      <div className="pt-3 border-t border-border mt-1" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between animate-fadeIn">
+                          <span className="text-sm font-medium text-muted">
+                            Số câu chọn:
+                            <span className="text-xs text-primary ml-1">(max {getMaxForTopic(topic)})</span>
+                          </span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={getMaxForTopic(topic)}
+                            value={getCountForTopic(topic.name, getMaxForTopic(topic))}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || 0;
+                              setCountForTopic(topic.name, Math.min(val, getMaxForTopic(topic)));
+                            }}
+                            className="w-16 px-2 py-1 text-sm font-bold rounded-lg bg-surface-2 border border-border focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-center transition-all"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
 
-            {/* Panel category — nằm dưới grid, trên tổng quan */}
+            {/* Panel category */}
             {mode === "custom" && expandedTopics.size > 0 && (
               <div
                 className="rounded-2xl p-5 animate-fadeIn space-y-5"
-                style={{
-                  background: "rgba(139,92,246,0.06)",
-                  border: "1px solid rgba(139,92,246,0.25)",
-                }}
+                style={{ background: "rgba(139,92,246,0.06)", border: "1px solid rgba(139,92,246,0.25)" }}
               >
                 <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--primary)" }}>
                   Chọn danh mục
@@ -288,7 +241,6 @@ export const InterviewView = () => {
                   .filter((t) => expandedTopics.has(t.name))
                   .map((topic) => (
                     <div key={topic.name} className="space-y-2">
-                      {/* Topic label */}
                       <div className="flex items-center gap-2">
                         <div className="w-5 h-5 shrink-0">
                           <TopicLogo name={topic.name} className="w-full h-full object-contain" />
@@ -299,14 +251,13 @@ export const InterviewView = () => {
                         </span>
                       </div>
 
-                      {/* Category chips */}
                       <div className="flex flex-wrap gap-2 pl-7">
                         {topic.categories.map((cat) => (
                           <span
                             key={cat.name}
                             onClick={() => toggleCategory(topic.name, cat.name)}
                             className={`px-3 py-1.5 rounded-full text-xs font-semibold border cursor-pointer transition-all flex items-center gap-1.5
-                  ${categorySelections.get(topic.name)?.has(cat.name)
+                              ${categorySelections.get(topic.name)?.has(cat.name)
                                 ? "bg-primary text-white border-primary shadow-sm shadow-primary/30"
                                 : "bg-surface border-border text-foreground hover:border-primary hover:text-primary"
                               }`}
@@ -321,6 +272,7 @@ export const InterviewView = () => {
               </div>
             )}
 
+            {/* Tổng quan */}
             <div className="max-w-2xl mx-auto rounded-3xl p-6 relative overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.1), rgba(99,102,241,0.05))", border: "1px solid rgba(139,92,246,0.3)", boxShadow: "0 20px 40px -15px rgba(139,92,246,0.15)" }}>
               <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div>
@@ -329,11 +281,13 @@ export const InterviewView = () => {
                     Bạn đã chọn <span className="font-extrabold text-primary text-3xl mx-1">
                       {mode === "quick"
                         ? totalQuestionsSelected
-                        : [...categorySelections.keys()].reduce((sum, topicName) => {
+                        : [...categorySelections.keys()].reduce((sum: number, topicName: string) => {
                           const topic = topics.find((t) => t.name === topicName);
                           if (!topic) return sum;
-                          return sum + getCountForTopic(topicName, getMaxForTopic(topic));
-                        }, 0)}
+                          const max = getMaxForTopic(topic);
+                          return sum + getCountForTopic(topicName, max);
+                        }, 0)
+                      }
                     </span> câu hỏi
                   </p>
                 </div>
@@ -363,9 +317,8 @@ export const InterviewView = () => {
               </div>
             </div>
           </div>
-        )
-        }
-      </div >
+        )}
+      </div>
     );
   }
 
