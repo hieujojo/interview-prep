@@ -4,6 +4,7 @@ import { useAIReview } from "@/hooks/useAIReview";
 import { useTopics } from "@/hooks/useTopics";
 import { useInterviewSession, formatTime } from "@/hooks/useInterviewSession";
 import { NoteDrawer } from '@/components/notes/NoteDrawer';
+import { ScoreBreakdown } from "@/components/interview/ScoreBreakdown";
 
 function getTopicLogo(topicName: string) {
   const name = topicName.toLowerCase();
@@ -384,6 +385,7 @@ export const InterviewView = () => {
                     <p className="font-bold text-[15px] leading-relaxed text-foreground">{ans.question.content}</p>
                   </div>
                 </div>
+                {ans.feedback && <ScoreBreakdown feedback={ans.feedback} />}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                   <div className="p-4 bg-surface-hover rounded-2xl text-sm border border-border">
                     <p className="text-danger text-xs font-bold mb-2 uppercase tracking-widest flex items-center gap-2"><span>⚠️</span> Bạn đã trả lời</p>
@@ -500,6 +502,7 @@ export const InterviewView = () => {
               <FeedbackSection icon="✅" label="Điểm mạnh ấn tượng" content={current.feedback.strengths} color="var(--success)" bg="var(--success-bg)" />
               <FeedbackSection icon="⚠️" label="Lỗ hổng cần vá" content={current.feedback.gaps} color="var(--warning)" bg="var(--warning-bg)" />
               <FeedbackSection icon="💡" label="Cách upgrade câu trả lời" content={current.feedback.improvements} color="var(--info)" bg="var(--info-bg)" />
+              {current.feedback && <ScoreBreakdown feedback={current.feedback} />}
               {/* Sau FeedbackSection cuối, trước nút Next */}
               <div className="flex items-center justify-between gap-3 pt-2">
                 <button

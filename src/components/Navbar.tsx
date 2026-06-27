@@ -7,12 +7,10 @@ import { createClient } from "@/utils/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
 const NAV_ITEMS = [
-  { label: "Dashboard", href: "/", icon: "⚡" },
   { label: "Phỏng vấn", href: "/interview", icon: "🎯" },
   { label: "Phân tích JD", href: "/jd-analyzer", icon: "📋" },
   { label: "Code Review", href: "/code-review", icon: "🔍" },
   { label: "Bài tập", href: "/exercises", icon: "💻" },
-  { label: "Lịch sử", href: "/history", icon: "📊" },
   { label: "Thành tựu", href: "/achievements", icon: "🏆" },
   { label: "Ghi chú học tập", href: "/notes", icon: "📝" },
 ];
@@ -169,6 +167,15 @@ function NavbarContent() {
                     style={{ color: "var(--foreground)" }}
                   >
                     👤 Hồ Sơ
+                  </Link>
+
+                    <Link
+                    href="/history"
+                    onClick={() => setShowDropdown(false)}
+                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/5"
+                    style={{ color: "var(--foreground)" }}
+                  >
+                    📊 Lịch sử
                   </Link>
 
                   <button
