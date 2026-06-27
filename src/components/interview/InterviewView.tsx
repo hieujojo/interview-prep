@@ -46,6 +46,29 @@ function FeedbackSection({ icon, label, content, color, bg }: {
   );
 }
 
+function ExampleBlock({ content }: { content: string }) {
+  return (
+    <div
+      className="rounded-2xl p-5"
+      style={{
+        background: "rgba(99,102,241,0.07)",
+        border: "1px solid rgba(99,102,241,0.25)",
+        borderLeft: "4px solid var(--primary)",
+      }}
+    >
+      <p
+        className="text-[13px] font-extrabold uppercase tracking-widest mb-3 flex items-center gap-2"
+        style={{ color: "var(--primary)" }}
+      >
+        <span className="text-lg">📌</span> Câu trả lời mẫu
+      </p>
+      <pre className="text-[14px] font-mono whitespace-pre-wrap leading-relaxed text-foreground overflow-x-auto">
+        {content}
+      </pre>
+    </div>
+  );
+}
+
 const RUBRIC_ITEMS = [
   { icon: "🎯", label: "Technical Accuracy", weight: 40, desc: "Độ chính xác kỹ thuật — kiến thức đúng, không sai khái niệm" },
   { icon: "🧩", label: "Problem Solving", weight: 25, desc: "Tư duy phân tích, có hướng giải quyết rõ ràng" },
@@ -216,7 +239,6 @@ export const InterviewView = () => {
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {topics.map((topic) => {
-                // active state khác nhau tùy mode
                 const active = mode === "quick"
                   ? !!selectedTopics[topic.name]
                   : expandedTopics.has(topic.name) || categorySelections.has(topic.name);
@@ -233,15 +255,12 @@ export const InterviewView = () => {
                         const hasCategories = categorySelections.has(topic.name);
 
                         if (isCurrentlyExpanded) {
-                          // Đang mở → collapse
                           collapseTopic(topic.name);
                           clearCategorySelection(topic.name);
                         } else if (hasCategories) {
-                          // Có category nhưng panel đang đóng → bấm lần nữa = bỏ chọn hoàn toàn
                           collapseTopic(topic.name);
-                          clearCategorySelection(topic.name); // cần thêm hàm này
+                          clearCategorySelection(topic.name);
                         } else {
-                          // Chưa có gì → expand
                           expandTopic(topic.name);
                         }
                       }
@@ -266,7 +285,6 @@ export const InterviewView = () => {
                       </div>
                     </div>
 
-                    {/* Input số câu — quick mode dùng selectedTopics, custom mode dùng getCountForTopic */}
                     {mode === "quick" && !!selectedTopics[topic.name] && (
                       <div className="pt-3 border-t border-border mt-1" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between animate-fadeIn">
@@ -312,7 +330,6 @@ export const InterviewView = () => {
               })}
             </div>
 
-            {/* Panel category */}
             {mode === "custom" && expandedTopics.size > 0 && (
               <div
                 className="rounded-2xl p-5 animate-fadeIn space-y-5"
@@ -358,7 +375,7 @@ export const InterviewView = () => {
             )}
 
             <RubricPanel />
-            {/* Tổng quan */}
+
             <div className="max-w-2xl mx-auto rounded-3xl p-6 relative overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.1), rgba(99,102,241,0.05))", border: "1px solid rgba(139,92,246,0.3)", boxShadow: "0 20px 40px -15px rgba(139,92,246,0.15)" }}>
               <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div>
@@ -480,6 +497,10 @@ export const InterviewView = () => {
                     <p className="leading-relaxed whitespace-pre-wrap">{ans.feedback?.improvements}</p>
                   </div>
                 </div>
+                {/* ExampleBlock trong Finish Screen */}
+                {ans.feedback?.example && (
+                  <ExampleBlock content={ans.feedback.example} />
+                )}
               </div>
             ))}
           </div>
@@ -586,8 +607,11 @@ export const InterviewView = () => {
               <FeedbackSection icon="✅" label="Điểm mạnh ấn tượng" content={current.feedback.strengths} color="var(--success)" bg="var(--success-bg)" />
               <FeedbackSection icon="⚠️" label="Lỗ hổng cần vá" content={current.feedback.gaps} color="var(--warning)" bg="var(--warning-bg)" />
               <FeedbackSection icon="💡" label="Cách upgrade câu trả lời" content={current.feedback.improvements} color="var(--info)" bg="var(--info-bg)" />
+              {/* ExampleBlock — ô riêng biệt cho code minh hoạ */}
+              {current.feedback.example && (
+                <ExampleBlock content={current.feedback.example} />
+              )}
               {current.feedback && <ScoreBreakdown feedback={current.feedback} />}
-              {/* Sau FeedbackSection cuối, trước nút Next */}
               <div className="flex items-center justify-between gap-3 pt-2">
                 <button
                   onClick={handleRegenerate}

@@ -62,15 +62,19 @@ score = round((technical * 0.4) + (problemSolving * 0.25) + (communication * 0.2
 
 QUY TẮC VIẾT FEEDBACK:
 - "strengths": chỉ liệt kê những gì ứng viên THỰC SỰ đã nói đúng, không tự thêm.
-- "gaps": chỉ liệt kê những gì ứng viên THỰC SỰ chưa đề cập hoặc sai. Nếu không có gap thực sự, ghi "Không có gap đáng kể."
-- "improvements": gợi ý cụ thể, kèm ví dụ code hoặc câu trả lời mẫu ngắn gọn.
+- "gaps":  CHỈ liệt kê những gì câu hỏi YÊU CẦU mà ứng viên bỏ sót.
+  KHÔNG thêm kiến thức liên quan nhưng nằm ngoài phạm vi câu hỏi vào gaps.
+  Ví dụ: câu hỏi về branch → không phạt vì không đề cập git merge hay pull request workflow.
+- "improvements": gợi ý cải thiện ngắn gọn bằng lời, KHÔNG kèm code hay ví dụ cụ thể.
+- "example": viết một câu trả lời mẫu hoàn chỉnh cho câu hỏi này. Nếu cần minh họa bằng code, hãy viết code snippet ngắn gọn, rõ ràng. Đây là ô riêng biệt, tách hoàn toàn khỏi improvements.
 - Trả lời bằng tiếng Việt, chỉ dùng tiếng Anh cho thuật ngữ kỹ thuật.
 
 Trả lời CHỈ bằng JSON theo đúng format:
 {
   "strengths": "những gì câu trả lời đã đúng và đủ",
   "gaps": "những khái niệm chưa đề cập hoặc giải thích chưa rõ",
-  "improvements": "gợi ý cách trả lời tốt hơn, kèm ví dụ cụ thể",
+  "improvements": "gợi ý cách trả lời tốt hơn bằng lời, không có code",
+  "example": "câu trả lời mẫu hoàn chỉnh, có thể kèm code snippet nếu phù hợp",
   "categoryScores": {
     "technical": <số nguyên 0-10>,
     "problemSolving": <số nguyên 0-10>,
