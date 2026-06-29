@@ -11,16 +11,24 @@
 
 ## Git Branch Naming Convention
 
-Mỗi issue/tính năng BẮT BUỘC tạo branch riêng, đặt tên theo quy tắc sau:
+Ưu tiên sử dụng các **nhánh cố định** đã có sẵn thay vì tạo nhánh mới cho từng issue nhỏ:
 
-| Loại | Format | Ví dụ |
-|------|--------|-------|
-| Bug fix | `fix/<issue-number>-<mô-tả-ngắn>` | `fix/11-save-session-401` |
-| Tính năng mới | `feature/<issue-number>-<mô-tả-ngắn>` | `feature/12-progress-tracking` |
+| Nhánh | Mục đích |
+|-------|----------|
+| `feat/hieu` | Tính năng mới |
+| `fix/hieu` | Bug fix |
+| `refactor/hieu` | Refactor code |
+| `chore/hieu` | Việc vặt: dọn dẹp, cập nhật package, cấu hình, tài liệu  |
+| `opt/hieu` | Tối ưu hiệu năng |
+
+**Khi nào tạo nhánh mới?**
+Chỉ tạo nhánh riêng khi đó là một **module lớn, độc lập** (ví dụ: tích hợp thanh toán, hệ thống document learning center, v.v...). Các thay đổi thông thường dùng nhánh cố định tương ứng ở trên.
 
 **Quy tắc:**
-- Luôn tạo branch từ `main`
-- Tên branch dùng chữ thường, ngăn cách bằng dấu `-`
+- Nếu cần tạo nhánh mới → luôn checkout từ `main`
+- Tên nhánh mới dùng chữ thường, ngăn cách bằng dấu `-`
+- **KHÔNG** pull request vào `main` (nhánh `main` chỉ được merge khi deploy)
+- **LUÔN** gửi Pull Request vào nhánh `release`
 - Commit message cuối phải có `Closes #<issue-number>` để GitHub tự đóng issue khi PR được merge
 
 **Ví dụ commit message:**
@@ -51,17 +59,26 @@ fix: remove duplicate supabase client, save answers to DB. Closes #11
 Quy trình chuẩn khi làm việc với GitHub để tự động hóa việc đóng Issue:
 
 1. **Tạo Issue:** Lên GitHub tạo Issue (ví dụ: Issue `#11`).
-2. **Tạo Branch:** Tạo nhánh mới từ `main` (tên nhánh nên chứa số issue để dễ quản lý).
-   ```bash
-   git checkout -b fix/11-ten-loi-ngan-gon
-   ```
-3. **Code & Commit:** Sửa code xong, **BẮT BUỘC** phải có từ khóa `Closes #số_issue` hoặc `Fixes #số_issue` trong message. (Đây là "từ khóa ma thuật" giúp GitHub tự động link và đóng issue).
+
+2. **Chọn nhánh làm việc:**
+   - Nếu là thay đổi thông thường → dùng nhánh cố định phù hợp (`feat/hieu`, `fix/hieu`, v.v...)
+   - Nếu là module lớn, độc lập → tạo nhánh mới từ `main`:
+     ```bash
+     git checkout main
+     git pull origin main
+     git checkout -b feat/ten-module-lon
+     ```
+
+3. **Code & Commit:** Sửa code xong, **BẮT BUỘC** phải có từ khóa `Closes #số_issue` hoặc `Fixes #số_issue` trong message:
    ```bash
    git add .
-   git commit -m "Fix: Sửa lỗi lưu session (401 và DB). Closes #11"
+   git commit -m "fix: sửa lỗi lưu session (401 và DB). Closes #11"
    ```
-4. **Push & Pull Request (PR):** Push nhánh lên GitHub và tạo Pull Request.
+
+4. **Push & Pull Request (PR):** Push nhánh lên GitHub và tạo Pull Request **vào nhánh `release`** (KHÔNG phải `main`):
    ```bash
-   git push -u origin fix/11-ten-loi-ngan-gon
+   git push -u origin fix/hieu
    ```
-5. **Merged:** Khi PR được duyệt và merge vào `main`, GitHub sẽ **tự động đóng** Issue `#11`. Không cần đóng bằng tay!
+   > ⚠️ Target của PR luôn là `release`. Nhánh `main` chỉ được merge từ `release` khi chuẩn bị deploy.
+
+5. **Merged:** Khi PR được duyệt và merge vào `release`, GitHub sẽ **tự động đóng** Issue tương ứng. Không cần đóng bằng tay!
