@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { CVJDMatchResult } from "@/hooks/useCVJDMatch";
+import { createPortal } from "react-dom";
 
 type Props = {
   result: CVJDMatchResult;
@@ -52,8 +53,8 @@ function ScoreArc({ score }: { score: number }) {
 export default function CVJDMatchView({ result, onClose }: Props) {
   const [activeSection, setActiveSection] = useState<"match" | "gap" | "path" | "ready">("match");
 
-  return (
-    <div
+  return createPortal(
+     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
@@ -302,6 +303,7 @@ export default function CVJDMatchView({ result, onClose }: Props) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

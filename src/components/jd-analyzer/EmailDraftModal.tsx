@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { EmailDraftResult } from "@/hooks/useEmailDraft";
+import { createPortal } from "react-dom";
 
 type Props = {
   jdText: string;
@@ -67,8 +68,8 @@ export default function EmailDraftModal({
     ? `Tiêu đề: ${activeSubject}\n\n${currentBody}`
     : "";
 
-  return (
-    <div
+  return createPortal(
+     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
@@ -334,6 +335,7 @@ export default function EmailDraftModal({
         </div>
       </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
