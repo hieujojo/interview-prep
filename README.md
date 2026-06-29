@@ -1,78 +1,77 @@
 # Interview Prep – Luyện phỏng vấn với AI 🚀
 
-Nền tảng luyện phỏng vấn kỹ thuật toàn diện, tích hợp AI (Groq Llama-3.3-70b) để sinh câu hỏi, phân tích CV, phân tích Job Description, code review và theo dõi tiến độ học tập. Toàn bộ dữ liệu được lưu trữ bền vững trên Supabase.
+Nền tảng luyện phỏng vấn kỹ thuật toàn diện, mọi tính năng đều được AI tự động hóa — từ phân tích CV, sinh câu hỏi, đánh giá câu trả lời, review code cho đến viết email ứng tuyển.
 
 ---
 
 ## ✨ Tính năng
 
-### 🔐 Đăng nhập bảng Google
-- Đăng nhập an toàn 100% qua tài khoản Google OAuth 2.0 thông qua Supabase Auth
-- Dữ liệu (CV, JD, kết quả phỏng vấn...) được cô lập riêng biệt cho từng tài khoản bằng Row Level Security (RLS)
-- Tự động điều hướng về trang đăng nhập nếu chưa xác thực
-- Hiển thị Avatar và tên tài khoản Google trên Navbar; có nút Đăng xuất
+### 🔐 Xác thực
+- Đăng nhập qua Google OAuth 2.0, dữ liệu cô lập theo từng tài khoản (RLS)
+- Hiển thị avatar + tên trên Navbar, tự động redirect nếu chưa đăng nhập
 
-### 👤 Hồ Sơ Cá Nhân (`/profile`)
+### 👤 Hồ Sơ & Phân tích CV (`/profile`)
 - Upload CV dạng PDF, DOCX hoặc paste text trực tiếp
-- AI phân tích CV toàn diện:
+- AI tự động phân tích toàn bộ CV và trả về:
   - **Điểm tổng thể** (0–100) với breakdown 4 tiêu chí: Kỹ thuật, Dự án, Kinh nghiệm, Trình bày
   - Trích xuất kỹ năng (Technical / Soft / Tools), kinh nghiệm, dự án, học vấn
-  - Điểm mạnh & điểm yếu với giải thích chi tiết
-  - **Tab Câu hỏi**: sinh câu hỏi phỏng vấn cá nhân hóa dựa trực tiếp vào nội dung CV
-  - **Tab Học thêm**: gợi ý kỹ năng nên học với priority và tài nguyên học cụ thể
+  - Điểm mạnh & điểm yếu với giải thích cụ thể
+  - **Câu hỏi phỏng vấn** cá nhân hóa sinh ra trực tiếp từ nội dung CV
+  - **Gợi ý học thêm** với mức độ ưu tiên và tài nguyên học cụ thể
 
 ### 📋 Phân tích Job Description (`/jd-analyzer`)
 - Paste JD hoặc upload file PDF/DOCX
-- AI phân tích sâu và trả về:
-  - **Level ước tính** (Junior / Mid / Senior) với lý do
-  - **Tech stack** và kỹ năng trọng tâm
+- AI tự động phân tích sâu và trả về:
+  - **Level ước tính** (Intern / Fresher / Junior / Mid / Senior) kèm lý do cụ thể
+  - Tech stack và kỹ năng trọng tâm cần có
   - **Mức lương ước tính** theo thị trường Việt Nam
-  - **Tab Câu hỏi & Bài tập**: 15–20 câu hỏi phỏng vấn (Technical / System Design / Behavioral) + bài tập coding mini
-  - **Tab Về công ty**: văn hóa, môi trường, tech maturity (Startup/Scale-up/Enterprise), work style, pros/cons
-  - **Tab Lộ trình học**: timeline học tập ưu tiên theo yêu cầu JD
+  - 15–20 câu hỏi phỏng vấn (Technical / System Design / Behavioral) + bài tập coding mini
+  - Thông tin công ty: văn hóa, môi trường, tech maturity, work style, pros/cons
+  - Lộ trình học ưu tiên theo đúng yêu cầu JD
 
-### 🔗 Kết hợp CV + JD (trong `/jd-analyzer`)
-- So sánh CV của bạn với JD sau khi phân tích xong
-- Kết quả bao gồm:
+### 🔗 So sánh CV + JD
+- AI đối chiếu CV với JD, tự động tính toán:
   - **Match Score** tổng thể (%)
-  - Kỹ năng đã có / kỹ năng đang thiếu (Bắt buộc / Quan trọng / Tốt nếu có)
-  - Lộ trình học để lấp đầy khoảng cách
-  - % sẵn sàng phỏng vấn
+  - Kỹ năng đã có / kỹ năng còn thiếu (phân loại: Bắt buộc / Quan trọng / Tốt nếu có)
+  - Lộ trình học để lấp đầy khoảng cách kỹ năng
+  - **% sẵn sàng phỏng vấn** cho vị trí đó
 
-### ✉️ Viết Email Ứng Tuyển (trong `/jd-analyzer`)
-- AI sinh email xin việc chuyên nghiệp dựa trên JD
-- **Song ngữ Việt/Anh**: Tự động sinh cả hai phiên bản, có nút tab chuyển đổi nhanh chóng trên giao diện
-- Cá nhân hóa theo tên ứng viên, tên HR
-- Tùy chọn kết hợp nội dung CV
-- Sinh 3 tiêu đề thay thế để chọn cho mỗi ngôn ngữ
-- Copy từng phần (tiêu đề / nội dung / toàn bộ) hoặc sinh lại
+### ✉️ Viết Email Ứng Tuyển
+- AI tự động sinh email xin việc chuyên nghiệp dựa trên JD và CV
+- Song ngữ Việt/Anh, chuyển đổi nhanh bằng tab
+- Sinh 3 tiêu đề email thay thế cho mỗi ngôn ngữ để lựa chọn
+- Copy từng phần (tiêu đề / nội dung / toàn bộ) hoặc yêu cầu AI sinh lại
 
 ### 🎯 Phỏng vấn AI (`/interview`)
-- Chọn chủ đề và độ khó
-- AI đặt câu hỏi, người dùng trả lời
-- Nhận feedback và gợi ý câu trả lời tốt hơn
-- Tích hợp gợi ý (hint) khi cần
+- Chọn chủ đề và độ khó, AI tự động sinh câu hỏi phù hợp
+- Trả lời → AI chấm điểm, nhận xét chi tiết và đưa ra câu trả lời mẫu tốt hơn
+- Hỗ trợ gợi ý (hint) khi bí, AI giải thích từng bước
+- Toàn bộ lịch sử phỏng vấn được lưu để xem lại
 
-### 🔍 Code Review (`/code-review`)
-- Paste đoạn code bằng bất kỳ ngôn ngữ nào
-- AI review: phát hiện bug, anti-pattern, gợi ý cải thiện performance
+### 🔍 Code Review AI (`/code-review`)
+- Paste code bằng bất kỳ ngôn ngữ nào, AI tự động review toàn bộ:
+  - Phát hiện bug, logic sai, edge case bị bỏ sót
+  - Chỉ ra anti-pattern và giải thích tại sao nên tránh
+  - Gợi ý cải thiện performance, readability, cấu trúc code
 - Monaco Editor với syntax highlighting
 
 ### 💻 Bài tập Coding (`/exercises`)
-- Kho bài tập theo chủ đề và độ khó
-- Viết và chạy code ngay trên trình duyệt
-- AI chấm điểm và giải thích
+- Kho bài tập phân loại theo chủ đề và độ khó
+- Viết và chạy code trực tiếp trên trình duyệt
+- AI tự động chấm điểm, giải thích kết quả và gợi ý hướng tối ưu
 
 ### 🏆 Thành tựu (`/achievements`)
-- Theo dõi huy hiệu và milestones học tập
-- Streak học hàng ngày
+- Hệ thống huy hiệu tự động mở khoá theo tiến độ học tập
+- Theo dõi streak học hàng ngày, milestones tích luỹ
 
 ### 📊 Lịch sử (`/history`)
-- Xem lại toàn bộ lịch sử phỏng vấn, code review, phân tích JD
-- Thống kê điểm số theo thời gian với biểu đồ
+- Toàn bộ lịch sử phỏng vấn, code review, phân tích JD được lưu tự động
+- Biểu đồ thống kê điểm số theo thời gian
 
-### 📓 Ghi chú học tập (`/notes`)
-- Tạo, chỉnh sửa, xoá và tìm kiếm ghi chú cá nhân trong quá trình ôn luyện. Hỗ trợ tags để phân loại nội dung.
+### 📓 Ghi chú (`/notes`)
+- Tạo, chỉnh sửa, xoá và tìm kiếm ghi chú cá nhân
+- Hỗ trợ tags để phân loại nội dung theo chủ đề
+
 ---
 
 ## 🛠️ Tech Stack
@@ -81,123 +80,14 @@ Nền tảng luyện phỏng vấn kỹ thuật toàn diện, tích hợp AI (Gr
 |-------|-----------|
 | Framework | Next.js 16 (App Router) |
 | Language | TypeScript |
-| Styling | Tailwind CSS v4 + CSS Variables |
+| Styling | Tailwind CSS v4 |
 | AI | Groq API – Llama-3.3-70b-versatile |
-| Database | Supabase (PostgreSQL) |
+| Database | Supabase (PostgreSQL + RLS) |
 | Auth | Supabase Auth (Google OAuth 2.0) |
 | Editor | Monaco Editor |
-| Charts | Recharts |
-| File Parsing | pdf-parse, mammoth (DOCX) |
 
 ---
 
-## 🗄️ Database Schema (Supabase)
+## 📐 Nguyên tắc làm việc
 
-| Bảng | Mô tả |
-|------|-------|
-| `sessions` | Phiên phỏng vấn |
-| `questions` | Câu hỏi trong phiên |
-| `answers` | Câu trả lời của người dùng |
-| `question_bank` | Ngân hàng câu hỏi |
-| `categories` | Danh mục chủ đề |
-| `topics` | Chủ đề con |
-| `jd_analyses` | Kết quả phân tích Job Description |
-| `cv_analyses` | Kết quả phân tích CV |
-| `code_reviews` | Kết quả code review |
-| `user_stats` | Thống kê người dùng |
-
----
-
-## ⚙️ Cài đặt & Chạy
-
-### Yêu cầu
-- Node.js >= 18
-- Tài khoản [Supabase](https://supabase.com)
-- API key [Groq](https://console.groq.com)
-
-### Cài đặt
-
-```bash
-# Clone repo
-git clone <repo-url>
-cd interview-prep
-
-# Cài dependencies
-npm install
-
-# Tạo file .env.local
-cp .env.example .env.local
-```
-
-### Cấu hình `.env.local`
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-GROQ_API_KEY=your_groq_api_key
-```
-
-### Chạy Development Server
-
-```bash
-npm run dev
-```
-
-Mở [http://localhost:3000](http://localhost:3000) trên trình duyệt.
-
-### Build Production
-
-```bash
-npm run build
-npm run start
-```
-
----
-
-## 📁 Cấu trúc Dự án
-
-```
-src/
-├── app/
-│   ├── api/
-│   │   ├── cv-analysis/       # POST: phân tích CV, GET: lấy kết quả mới nhất
-│   │   ├── cv-jd-match/       # POST: so sánh CV vs JD
-│   │   ├── email-draft/       # POST: sinh email ứng tuyển
-│   │   ├── jd-analysis/       # POST: phân tích JD, GET: lấy kết quả mới nhất
-│   │   ├── interview/         # Quản lý phiên phỏng vấn
-│   │   ├── code-review/       # Code review với AI
-│   │   ├── hint/              # Gợi ý câu trả lời
-│   │   └── parse-file/        # Đọc PDF/DOCX
-│   ├── profile/               # Trang Hồ Sơ
-│   ├── jd-analyzer/           # Trang Phân tích JD
-│   ├── interview/             # Trang Phỏng vấn
-│   ├── code-review/           # Trang Code Review
-│   ├── exercises/             # Trang Bài tập
-│   ├── achievements/          # Trang Thành tựu
-│   └── history/               # Trang Lịch sử
-├── components/
-│   ├── profile/               # ProfileView
-│   ├── jd-analyzer/           # JDAnalyzerView, CVJDMatchView, EmailDraftModal
-│   └── Navbar.tsx
-└── hooks/
-    ├── useCVAnalysis.ts
-    ├── useCVJDMatch.ts
-    ├── useEmailDraft.ts
-    ├── useJDAnalysis.ts
-    └── ...
-```
-
----
-
-## 🤖 AI Prompting
-
-Toàn bộ AI phản hồi bằng **tiếng Việt có đầy đủ dấu**, chỉ giữ tiếng Anh cho thuật ngữ kỹ thuật (React, Node.js, Docker, v.v.). Sử dụng `response_format: json_object` để đảm bảo parse JSON ổn định.
-
----
-
-## 📌 Quy tắc Dự án
-
-- **Database Persistence**: Mọi dữ liệu người dùng BẮT BUỘC lưu vào Supabase
-- **No LocalStorage**: Không sử dụng `localStorage` hay `sessionStorage` cho dữ liệu vĩnh viễn
-- **Database Schema**: Mọi bảng mới phải có SQL kèm theo để chạy trên Supabase SQL Editor
-- **Page.tsx Architecture**: File `page.tsx` chỉ chứa import. UI → `components/`, Logic → `hooks/`
+Đọc [`rules.md`](./rule.md) trước khi bắt đầu code.
