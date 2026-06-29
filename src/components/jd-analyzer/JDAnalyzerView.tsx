@@ -4,6 +4,7 @@ import CVJDMatchView from "./CVJDMatchView";
 import EmailDraftModal from "./EmailDraftModal";
 import { useJDAnalyzerView } from "@/hooks/useJDAnalyzerView";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 
 const DIFFICULTY_STYLE: Record<string, { color: string; bg: string }> = {
   "Cơ bản": { color: "var(--success)", bg: "var(--success-bg)" },
@@ -27,18 +28,18 @@ const TECH_MATURITY_COLOR: Record<string, string> = {
 };
 
 const JD_CRITERIA = [
-  { icon: "🎯", label: "Kỹ năng cốt lõi",       desc: "Công nghệ, framework bắt buộc được nhấn mạnh trong JD" },
-  { icon: "📅", label: "Số năm kinh nghiệm",     desc: "Yêu cầu kinh nghiệm tổng thể và theo từng mảng" },
-  { icon: "🏗️", label: "Trách nhiệm công việc",  desc: "Scope công việc, độ phức tạp của hệ thống cần xây dựng" },
-  { icon: "🏢", label: "Môi trường & Văn hóa",   desc: "Startup / Scale-up / Enterprise, Remote / Hybrid / On-site" },
+  { icon: "🎯", label: "Kỹ năng cốt lõi", desc: "Công nghệ, framework bắt buộc được nhấn mạnh trong JD" },
+  { icon: "📅", label: "Số năm kinh nghiệm", desc: "Yêu cầu kinh nghiệm tổng thể và theo từng mảng" },
+  { icon: "🏗️", label: "Trách nhiệm công việc", desc: "Scope công việc, độ phức tạp của hệ thống cần xây dựng" },
+  { icon: "🏢", label: "Môi trường & Văn hóa", desc: "Startup / Scale-up / Enterprise, Remote / Hybrid / On-site" },
 ];
 
 const JD_OUTPUTS = [
-  { icon: "📊", label: "Level ước tính",    desc: "Junior / Mid / Senior / Lead dựa trên yêu cầu JD" },
-  { icon: "💰", label: "Mức lương",         desc: "Ước tính theo thị trường Việt Nam" },
-  { icon: "❓", label: "Bộ câu hỏi",        desc: "15–20 câu Technical, System Design, Behavioral" },
-  { icon: "💻", label: "Bài tập Coding",    desc: "2–3 bài mini phù hợp với tech stack JD" },
-  { icon: "📚", label: "Lộ trình học",      desc: "Ưu tiên theo kỹ năng còn thiếu so với JD" },
+  { icon: "📊", label: "Level ước tính", desc: "Junior / Mid / Senior / Lead dựa trên yêu cầu JD" },
+  { icon: "💰", label: "Mức lương", desc: "Ước tính theo thị trường Việt Nam" },
+  { icon: "❓", label: "Bộ câu hỏi", desc: "15–20 câu Technical, System Design, Behavioral" },
+  { icon: "💻", label: "Bài tập Coding", desc: "2–3 bài mini phù hợp với tech stack JD" },
+  { icon: "📚", label: "Lộ trình học", desc: "Ưu tiên theo kỹ năng còn thiếu so với JD" },
 ];
 
 function JDRubricPanel() {
@@ -182,7 +183,7 @@ export default function JDAnalyzerView() {
         </p>
       )}
 
-    <JDRubricPanel />
+      <JDRubricPanel />
 
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-3">
@@ -486,7 +487,7 @@ export default function JDAnalyzerView() {
       )}
 
       {/* CV-JD Match Modal */}
-      {showMatchModal && !matchResult && (
+      {showMatchModal && !matchResult && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }}
@@ -553,7 +554,8 @@ export default function JDAnalyzerView() {
               ) : "🔍 Phân tích mức độ phù hợp"}
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* CV-JD Match Result Modal */}
