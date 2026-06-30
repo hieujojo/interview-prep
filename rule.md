@@ -45,7 +45,7 @@ fix: remove duplicate supabase client, save answers to DB. Closes #11
 - `question_bank` ✅ RLS (Public read-only policy)
 - `sessions` ✅ RLS (Lưu interview sessions: `type`, `topic`, `user_id UUID`, `created_at`; INSERT + SELECT policy cho authenticated user)
 - `topics` ✅ RLS (Public read-only policy)
-- `user_stats` ✅ RLS (Đã thêm cột `user_id UUID`)
+- `user_stats` ✅ RLS (Đã thêm cột `user_id UUID`, đã thêm `preferred_provider TEXT DEFAULT 'groq'`)
 - `notes` ✅ RLS (question_index, question_content, note_text per session).
 - `achivement` ✅ RLS
 

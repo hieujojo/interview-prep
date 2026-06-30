@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import { createClient } from "@/utils/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import { AIProviderToggle } from "./AIProviderToggle";
 
 const NAV_ITEMS = [
   { label: "Phỏng vấn", href: "/interview", icon: "🎯" },
@@ -113,9 +114,12 @@ function NavbarContent() {
         </div>
 
         {/* User avatar + dropdown */}
-        {user && (
-          <div className="relative shrink-0 ml-2">
-            <button
+        <div className="flex items-center gap-2 shrink-0 ml-2">
+          <AIProviderToggle />
+          
+          {user && (
+            <div className="relative">
+              <button
               id="user-avatar-btn"
               onClick={() => setShowDropdown((v) => !v)}
               className="flex items-center gap-2 px-2 py-1.5 rounded-xl transition-all hover:bg-white/5"
@@ -170,27 +174,28 @@ function NavbarContent() {
                   </Link>
 
                     <Link
-                    href="/history"
-                    onClick={() => setShowDropdown(false)}
-                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/5"
-                    style={{ color: "var(--foreground)" }}
-                  >
-                    📊 Lịch sử
-                  </Link>
+                      href="/history"
+                      onClick={() => setShowDropdown(false)}
+                      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/5"
+                      style={{ color: "var(--foreground)" }}
+                    >
+                      📊 Lịch sử
+                    </Link>
 
-                  <button
-                    id="logout-btn"
-                    onClick={handleLogout}
-                    className="w-full text-left px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/5"
-                    style={{ color: "#ef4444" }}
-                  >
-                    🚪 Đăng xuất
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        )}
+                    <button
+                      id="logout-btn"
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/5"
+                      style={{ color: "#ef4444" }}
+                    >
+                      🚪 Đăng xuất
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </nav>
   );

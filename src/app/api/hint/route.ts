@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { callAI, AIDisabledError } from "@/lib/aiClient";
+import type { AIProvider } from "@/lib/aiProviders";
 
 export async function POST(req: NextRequest) {
-  const { question } = await req.json();
+  const { question, provider = "groq" } = await req.json();
+  const aiProvider = provider as AIProvider;
 
   if (!question) {
     return NextResponse.json({ error: "Thiếu câu hỏi" }, { status: 400 });
@@ -19,34 +22,26 @@ Trả lời bằng JSON theo đúng format sau:
 }`;
 
   try {
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Câu hỏi: ${question}` },
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.3,
-      }),
+    const result = await callAI({
+      provider: aiProvider,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Câu hỏi: ${question}` },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.3,
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      return NextResponse.json({ error: `AI API lỗi: ${errText}` }, { status: 500 });
+    const cleanContent = result.content.replace(/```(?:json)?\\n?/g, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleanContent);
+    return NextResponse.json({
+      ...parsed,
+      _meta: { usedProvider: result.usedProvider, didFallback: result.didFallback },
+    });
+  } catch (err) {
+    if (err instanceof AIDisabledError) {
+      return NextResponse.json({ error: "AI_DISABLED" }, { status: 503 });
     }
-
-    const data = await response.json();
-    const rawText = data.choices?.[0]?.message?.content ?? "{}";
-
-    const parsed = JSON.parse(rawText);
-    return NextResponse.json(parsed);
-  } catch (error) {
     return NextResponse.json({ error: "Lỗi kết nối AI" }, { status: 500 });
   }
 }

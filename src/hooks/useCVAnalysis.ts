@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAIProviderStore } from "@/stores/aiProviderStore";
 
 export type CVSkills = {
   technical: string[];
@@ -83,6 +84,7 @@ export function useCVAnalysis() {
   const [result, setResult] = useState<CVAnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { currentProvider, setFallbackActive, setAIDisabled } = useAIProviderStore();
 
   const analyze = async (cvText: string) => {
     setIsAnalyzing(true);
@@ -92,14 +94,26 @@ export function useCVAnalysis() {
       const res = await fetch("/api/cv-analysis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cvText }),
+        body: JSON.stringify({ cvText, provider: currentProvider }),
       });
 
       const data = await res.json();
 
+      if (res.status === 503 && data.error === "AI_DISABLED") {
+        setAIDisabled(true);
+        setError("Hệ thống AI hiện đang quá tải hoặc bảo trì. Vui lòng thử lại sau.");
+        return;
+      }
+
       if (!res.ok) {
         setError(data.error ?? "Có lỗi xảy ra.");
         return;
+      }
+
+      if (data._meta?.didFallback) {
+        setFallbackActive(true);
+      } else {
+        setFallbackActive(false);
       }
 
       setResult(data as CVAnalysisResult);

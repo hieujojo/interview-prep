@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useAIProviderStore } from "@/stores/aiProviderStore";
 
 export type MatchedSkill = {
   skill: string;
@@ -91,6 +92,7 @@ export function useCVJDMatch() {
   const [result, setResult] = useState<CVJDMatchResult | null>(null);
   const [isMatching, setIsMatching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { currentProvider, setFallbackActive, setAIDisabled } = useAIProviderStore();
 
   const match = async (cvText: string, jdText: string) => {
     setIsMatching(true);
@@ -100,14 +102,26 @@ export function useCVJDMatch() {
       const res = await fetch("/api/cv-jd-match", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cvText, jdText }),
+        body: JSON.stringify({ cvText, jdText, provider: currentProvider }),
       });
 
       const data = await res.json();
 
+      if (res.status === 503 && data.error === "AI_DISABLED") {
+        setAIDisabled(true);
+        setError("Hệ thống AI hiện đang quá tải hoặc bảo trì. Vui lòng thử lại sau.");
+        return;
+      }
+
       if (!res.ok) {
         setError(data.error ?? "Có lỗi xảy ra.");
         return;
+      }
+
+      if (data._meta?.didFallback) {
+        setFallbackActive(true);
+      } else {
+        setFallbackActive(false);
       }
 
       setResult(data as CVJDMatchResult);
