@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { callAI, AIDisabledError } from "@/lib/aiClient";
+import type { AIProvider } from "@/lib/aiProviders";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -9,7 +11,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Chưa đăng nhập." }, { status: 401 });
   }
 
-  const { language, context, code } = await req.json();
+  const { language, context, code, provider = "groq" } = await req.json();
+  const aiProvider = provider as AIProvider;
 
   if (!code || code.trim().length < 5) {
     return NextResponse.json({ error: "Code quá ngắn để review." }, { status: 400 });
@@ -39,50 +42,46 @@ Trả lời CHỈ bằng JSON theo đúng format sau, không thêm text nào kh�
   "improvedCode": "code đã được viết lại tốt hơn, kèm comment giải thích ngắn gọn"
 }`;
 
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
+  try {
+    const result = await callAI({
+      provider: aiProvider,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: `Code cần review:\n\n${code}` },
       ],
       response_format: { type: "json_object" },
       temperature: 0.3,
-    }),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    return NextResponse.json({ error: `AI API lỗi: ${errText}` }, { status: 500 });
-  }
-
-  const data = await response.json();
-  const rawText = data.choices?.[0]?.message?.content ?? "{}";
-
-  let parsed;
-  try {
-    parsed = JSON.parse(rawText);
-  } catch {
-    return NextResponse.json({ error: "Không parse được phản hồi AI." }, { status: 500 });
-  }
-
-  // Lưu kết quả code review vào DB
-  try {
-    await supabase.from("code_reviews").insert({
-      user_id: user.id,
-      language,
-      code,
-      context: context || null,
-      result: parsed,
     });
-  } catch {
-    console.warn("Bỏ qua lỗi lưu code_reviews");
-  }
 
-  return NextResponse.json(parsed);
+    let parsed;
+    try {
+      const cleanContent = result.content.replace(/```(?:json)?\\n?/g, '').replace(/```/g, '').trim();
+      parsed = JSON.parse(cleanContent);
+    } catch {
+      return NextResponse.json({ error: "Không parse được phản hồi AI." }, { status: 500 });
+    }
+
+    // Lưu kết quả code review vào DB
+    try {
+      await supabase.from("code_reviews").insert({
+        user_id: user.id,
+        language,
+        code,
+        context: context || null,
+        result: parsed,
+      });
+    } catch {
+      console.warn("Bỏ qua lỗi lưu code_reviews");
+    }
+
+    return NextResponse.json({
+      ...parsed,
+      _meta: { usedProvider: result.usedProvider, didFallback: result.didFallback },
+    });
+  } catch (err) {
+    if (err instanceof AIDisabledError) {
+      return NextResponse.json({ error: "AI_DISABLED" }, { status: 503 });
+    }
+    return NextResponse.json({ error: "Lỗi kết nối AI." }, { status: 500 });
+  }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useAIProviderStore } from "@/stores/aiProviderStore";
 import { supabase } from "@/lib/supabase";
 import type { AIReviewResult } from "@/hooks/useAIReview";
 import type { InProgressNote } from '@/types/note';
@@ -62,6 +63,8 @@ export function useInterviewSession(reviewFn: ReviewFn) {
   // ── Topic Setup ──
   const [selections, setSelections] = useState<TopicSelection[] | null>(null);
   const [selectedTopics, setSelectedTopics] = useState<Record<string, number>>({});
+
+  const { currentProvider, setFallbackActive, setAIDisabled } = useAIProviderStore();
 
   const router = useRouter();
   const totalQuestionsSelected = Object.values(selectedTopics).reduce((a, b) => a + b, 0);
@@ -184,9 +187,22 @@ export function useInterviewSession(reviewFn: ReviewFn) {
       const res = await fetch("/api/hint", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: currentQuestion.content }),
+        body: JSON.stringify({ question: currentQuestion.content, provider: currentProvider }),
       });
       const data = await res.json();
+      
+      if (res.status === 503 && data.error === "AI_DISABLED") {
+        setAIDisabled(true);
+        alert("Hệ thống AI hiện đang bảo trì, không thể lấy gợi ý.");
+        return;
+      }
+
+      if (data._meta?.didFallback) {
+        setFallbackActive(true);
+      } else {
+        setFallbackActive(false);
+      }
+
       if (data.hint) {
         setCurrentHint(data.hint);
         markHintUsed();

@@ -268,7 +268,7 @@ export default function JDAnalyzerView() {
                 <div>
                   <p className="text-xs font-medium" style={{ color: "var(--muted)" }}>Mức lương ước tính</p>
                   <p className="text-base font-bold" style={{ color: "var(--success)" }}>
-                    {result.salaryRange.min.toLocaleString()} – {result.salaryRange.max.toLocaleString()} {result.salaryRange.currency}
+                    {result.salaryRange.min?.toLocaleString() ?? "???"} – {result.salaryRange.max?.toLocaleString() ?? "???"} {result.salaryRange.currency}
                   </p>
                   <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>{result.salaryRange.note}</p>
                 </div>

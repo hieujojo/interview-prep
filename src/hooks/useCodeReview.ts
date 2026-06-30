@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAIProviderStore } from "@/stores/aiProviderStore";
 
 export type CodeReviewResult = {
   syntaxErrors: string;
@@ -21,6 +22,7 @@ export function useCodeReview() {
   const [result, setResult] = useState<CodeReviewResult | null>(null);
   const [isReviewing, setIsReviewing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { currentProvider, setFallbackActive, setAIDisabled } = useAIProviderStore();
 
   const review = async (
     language: string,
@@ -40,14 +42,27 @@ export function useCodeReview() {
           language,
           context,
           code,
+          provider: currentProvider,
         }),
       });
 
       const data = await res.json();
 
+      if (res.status === 503 && data.error === "AI_DISABLED") {
+        setAIDisabled(true);
+        setError("Hệ thống AI hiện đang quá tải hoặc bảo trì. Vui lòng thử lại sau.");
+        return null;
+      }
+
       if (!res.ok) {
         setError(data.error ?? "Có lỗi xảy ra.");
         return null;
+      }
+
+      if (data._meta?.didFallback) {
+        setFallbackActive(true);
+      } else {
+        setFallbackActive(false);
       }
 
       const reviewResult = data as CodeReviewResult;
