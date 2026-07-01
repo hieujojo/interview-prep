@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { useCVJDMatch } from "@/hooks/useCVJDMatch";
 import { useEmailDraft } from "@/hooks/useEmailDraft";
+import { useAIProviderStore } from "@/stores/aiProviderStore";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 export type JDQuestion = {
@@ -72,6 +73,7 @@ export function useJDAnalyzerView(
   const [isSaved, setIsSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const { currentProvider, setFallbackActive, setAIDisabled } = useAIProviderStore();
 
   const {
     match, result: matchResult, isMatching, error: matchError, reset: resetMatch,
@@ -142,13 +144,27 @@ export function useJDAnalyzerView(
       const res = await fetch("/api/jd-analysis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jdText }),
+        body: JSON.stringify({ jdText, provider: currentProvider }),
       });
       const data = await res.json();
+      
+      if (res.status === 503 && data.error === "AI_DISABLED") {
+        setAIDisabled(true);
+        setError("Hệ thống AI hiện đang quá tải hoặc bảo trì. Vui lòng thử lại sau.");
+        return;
+      }
+      
       if (!res.ok) {
         setError(data.error ?? "Có lỗi xảy ra");
         return;
       }
+
+      if (data._meta?.didFallback) {
+        setFallbackActive(true);
+      } else {
+        setFallbackActive(false);
+      }
+      
       setResult(data);
     } catch (e: any) {
       setError(e.message ?? "Có lỗi xảy ra");

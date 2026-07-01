@@ -1,7 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/utils/supabase/server";
+import { callAI, AIDisabledError } from "@/lib/aiClient";
+import type { AIProvider } from "@/lib/aiProviders";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
-  const { cvText, jdText } = await req.json();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Chưa đăng nhập." }, { status: 401 });
+  }
+
+  const rate = checkRateLimit(user.id, 3, 60_000);
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: `Bạn đang thao tác quá nhanh. Vui lòng thử lại sau ${rate.retryAfterSec}s.` },
+      { status: 429 }
+    );
+  }
+
+  const { cvText, jdText, provider = "groq" } = await req.json();
+  const aiProvider = provider as AIProvider;
 
   if (!cvText || cvText.trim().length < 50)
     return NextResponse.json({ error: "CV quá ngắn." }, { status: 400 });
@@ -234,14 +254,9 @@ Trả lời CHỈ bằng JSON, không thêm bất kỳ text nào ngoài JSON:
   "coverLetterHints": ["điểm nên nhấn mạnh trong cover letter/email ứng tuyển, phù hợp văn hóa tuyển dụng VN và loại công ty này"]
 }`;
 
-  const aiResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
+  try {
+    const result = await callAI({
+      provider: aiProvider,
       messages: [
         { role: "system", content: systemPrompt },
         {
@@ -251,24 +266,28 @@ Trả lời CHỈ bằng JSON, không thêm bất kỳ text nào ngoài JSON:
       ],
       response_format: { type: "json_object" },
       temperature: 0.1,
-      max_tokens: 5000,
-    }),
-  });
+      max_tokens: 3000,
+    });
 
-  if (!aiResponse.ok) {
-    const errText = await aiResponse.text();
-    return NextResponse.json({ error: "AI API lỗi: " + errText }, { status: 500 });
+    let parsed: unknown;
+    try {
+      const cleanContent = result.content.replace(/```(?:json)?\\n?/g, '').replace(/```/g, '').trim();
+      console.log('--- [CV-JD MATCH] AI RAW RESPONSE ---', result.content);
+      console.log('--- [CV-JD MATCH] CLEANED CONTENT ---', cleanContent);
+      parsed = JSON.parse(cleanContent);
+    } catch (err) {
+      console.error('[CV-JD MATCH] Parse error:', err);
+      return NextResponse.json({ error: "Không parse được phản hồi AI." }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      ...(parsed as object),
+      _meta: { usedProvider: result.usedProvider, didFallback: result.didFallback },
+    });
+  } catch (err) {
+    if (err instanceof AIDisabledError) {
+      return NextResponse.json({ error: "AI_DISABLED" }, { status: 503 });
+    }
+    return NextResponse.json({ error: "Lỗi kết nối AI." }, { status: 500 });
   }
-
-  const aiData = await aiResponse.json();
-  const rawText = aiData.choices?.[0]?.message?.content ?? "{}";
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(rawText);
-  } catch {
-    return NextResponse.json({ error: "Không parse được phản hồi AI." }, { status: 500 });
-  }
-
-  return NextResponse.json(parsed);
 }
