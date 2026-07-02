@@ -9,7 +9,7 @@ Nền tảng luyện phỏng vấn kỹ thuật toàn diện, mọi tính năng 
 ### 🔐 Xác thực & Cài đặt
 - Đăng nhập qua Google OAuth 2.0, dữ liệu cô lập theo từng tài khoản (RLS)
 - Hiển thị avatar + tên trên Navbar, tự động redirect nếu chưa đăng nhập
-- **AI Provider Selector**: Chọn linh hoạt giữa Groq và Cerebras, hệ thống tự động fallback nếu một nhà cung cấp bị quá tải (rate limit / downtime). Trạng thái (provider đang chọn, đang bị downtime, đang fallback) được thể hiện trực tiếp trên Navbar. Lựa chọn này được đồng bộ xuyên suốt các thiết bị thông qua Database.
+- **AI Provider Selector**: Chọn linh hoạt giữa Groq và Gemini, hệ thống tự động fallback nếu một nhà cung cấp bị quá tải (rate limit / downtime). Trạng thái (provider đang chọn, đang bị downtime, đang fallback) được thể hiện trực tiếp trên Navbar. Lựa chọn này được đồng bộ xuyên suốt các thiết bị thông qua Database.
 
 ### 👤 Hồ Sơ & Phân tích CV (`/profile`)
 - Upload CV dạng PDF, DOCX hoặc paste text trực tiếp
@@ -68,6 +68,7 @@ Nền tảng luyện phỏng vấn kỹ thuật toàn diện, mọi tính năng 
 ### 📊 Lịch sử (`/history`)
 - Toàn bộ lịch sử phỏng vấn, code review, phân tích JD được lưu tự động
 - Biểu đồ thống kê điểm số theo thời gian
+- **Lịch sử làm sai**: Xem lại các câu trả lời phỏng vấn bị điểm thấp (< 5) kèm nhận xét của AI để rút kinh nghiệm
 
 ### 📚 Tài Liệu Học Tập (`/documents`)
 - Kho tài liệu PDF/DOCX phân loại theo chủ đề và độ khó
@@ -89,7 +90,9 @@ Nền tảng luyện phỏng vấn kỹ thuật toàn diện, mọi tính năng 
 | Framework | Next.js 16 (App Router) |
 | Language | TypeScript |
 | Styling | Tailwind CSS v4 |
-| AI | Groq API / Cerebras API (Auto-fallback) – Llama-3.3-70b |
+| AI           | Groq API – Llama-3.3-70b-versatile |
+| AI           | Google Gemini API                  |
+| State        | Zustand                            |
 | Database | Supabase (PostgreSQL + RLS) |
 | Auth | Supabase Auth (Google OAuth 2.0) |
 | Editor | Monaco Editor |
