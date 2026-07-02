@@ -69,6 +69,13 @@ Nền tảng luyện phỏng vấn kỹ thuật toàn diện, mọi tính năng 
 - Toàn bộ lịch sử phỏng vấn, code review, phân tích JD được lưu tự động
 - Biểu đồ thống kê điểm số theo thời gian
 
+### 📚 Tài Liệu Học Tập (`/documents`)
+- Kho tài liệu PDF/DOCX phân loại theo chủ đề và độ khó
+- Upload tài liệu cá nhân lên Supabase Storage (private bucket)
+- **AI Recommendation**: Phân tích lịch sử phỏng vấn để gợi ý tài liệu phù hợp với điểm yếu
+- Tải xuống tài liệu qua Signed URL (bảo mật, tự hết hạn)
+- `question_bank` có thêm trường `sample_answer` — đáp án tham khảo cho từng câu hỏi phỏng vấn
+
 ### 📓 Ghi chú (`/notes`)
 - Tạo, chỉnh sửa, xoá và tìm kiếm ghi chú cá nhân
 - Hỗ trợ tags để phân loại nội dung theo chủ đề
