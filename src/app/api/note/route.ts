@@ -1,7 +1,24 @@
 // app/api/note/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/utils/supabase/server";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Chưa đăng nhập." }, { status: 401 });
+  }
+
+  const rate = checkRateLimit(user.id, 5, 60_000);
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: `Bạn đang thao tác quá nhanh. Vui lòng thử lại sau ${rate.retryAfterSec}s.` },
+      { status: 429 }
+    );
+  }
+
   const { question } = await req.json();
 
   if (!question) {

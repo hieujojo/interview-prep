@@ -87,7 +87,7 @@ function NavbarContent() {
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={item.href}  
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 relative group"
                 style={{
                   color: active ? "var(--primary-light)" : "var(--muted)",

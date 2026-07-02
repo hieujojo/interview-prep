@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { callAI, AIDisabledError, extractJson } from "@/lib/aiClient";
 import type { AIProvider } from "@/lib/aiProviders";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -9,6 +10,14 @@ export async function POST(req: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ error: "Chưa đăng nhập." }, { status: 401 });
+  }
+
+const rate = checkRateLimit(user.id, 3, 60_000);
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: `Bạn đang thao tác quá nhanh. Vui lòng thử lại sau ${rate.retryAfterSec}s.` },
+      { status: 429 }
+    );
   }
 
   const { cvText, provider = "groq" } = await req.json();
