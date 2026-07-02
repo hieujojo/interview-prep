@@ -48,6 +48,8 @@ fix: remove duplicate supabase client, save answers to DB. Closes #11
 - `user_stats` ✅ RLS (Đã thêm cột `user_id UUID`, đã thêm `preferred_provider TEXT DEFAULT 'groq'`)
 - `notes` ✅ RLS (question_index, question_content, note_text per session).
 - `achivement` ✅ RLS
+- `documents` ✅ RLS (Lưu metadata tài liệu học tập: title, file_url (Storage path), file_name, file_type, topic_id FK, category_id FK, difficulty, is_public; private bucket `documents` trên Supabase Storage)
+- `question_bank` — Đã thêm cột `sample_answer TEXT` (đáp án tham khảo, AI không dùng để chấm điểm)
 
 
 ## ⚠️ RULES FOR AI AGENTS (SUPABASE)
