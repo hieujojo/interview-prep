@@ -3,6 +3,9 @@
 import { useAIReview } from "@/hooks/useAIReview";
 import { useTopics } from "@/hooks/useTopics";
 import { useInterviewSession, formatTime } from "@/hooks/useInterviewSession";
+import { useCVAnalysis } from "@/hooks/useCVAnalysis";
+import { useCVTopicRecommendations } from "@/hooks/useCVTopicRecommendations";
+import { CVRecommendationsPanel } from "@/components/interview/CVRecommendationsPanel";
 import { NoteDrawer } from '@/components/notes/NoteDrawer';
 import { ScoreBreakdown } from "@/components/interview/ScoreBreakdown";
 import { useState } from 'react';
@@ -179,6 +182,31 @@ export const InterviewView = () => {
     isRegenerating, regenerateError, handleRegenerate
   } = useInterviewSession(review);
 
+  // ── CV-based recommendations ──
+  const { result: cvResult } = useCVAnalysis();
+  const { recommended, challenge } = useCVTopicRecommendations(cvResult, topics);
+
+  /**
+   * When user clicks a topic chip in the recommendations panel:
+   * In quick mode  → toggle topic on (if not already selected)
+   * In custom mode → expand the topic's category panel
+   */
+  const handleSelectRecommendedTopic = (topicName: string) => {
+    const topic = topics.find((t) => t.name === topicName);
+    if (!topic) return;
+    if (mode === "quick") {
+      if (!selectedTopics[topicName]) {
+        handleToggleTopic(topicName, topic.questionCount);
+      }
+    } else {
+      if (!expandedTopics.has(topicName)) {
+        expandTopic(topicName);
+      }
+    }
+    // Scroll to the topic grid
+    document.getElementById(`cv-recommendations-panel`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  };
+
   // ── Setup Screen ──
   if (!selections) {
     return (
@@ -237,6 +265,17 @@ export const InterviewView = () => {
 
         {!isLoading && !topicsError && (
           <div className="space-y-8">
+
+            {/* CV Recommendations Panel */}
+            {cvResult && (recommended.length > 0 || challenge.length > 0) && (
+              <CVRecommendationsPanel
+                recommended={recommended}
+                challenge={challenge}
+                currentLevel={cvResult.currentLevel ?? "Fresher"}
+                onSelectTopic={handleSelectRecommendedTopic}
+              />
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {topics.map((topic) => {
                 const active = mode === "quick"

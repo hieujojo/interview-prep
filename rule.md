@@ -6,8 +6,15 @@
 4. **Track SQL Execution**: Mỗi lần AI cung cấp câu lệnh SQL cho user, BẮT BUỘC phải tự động ghi chú (note) vào danh sách "Các bảng đã tạo" dưới đây để tránh tạo trùng lặp.
 5. **Update README**: Bất cứ tính năng mới nào được build xong, BẮT BUỘC phải cập nhật mô tả tính năng đó vào file `README.md` (mục "✨ Tính năng") ngay sau khi hoàn thành.
 6. **Page.tsx Architecture**: Toàn bộ file `page.tsx` trong thư mục `app/` CHỈ ĐƯỢC PHÉP chứa import. KHÔNG đặt UI hay logic trực tiếp vào `page.tsx`. UI phải được đặt trong thư mục `components/`, logic phải được đặt trong `hooks/`.
-7. **API Route per Feature**: Bất cứ khi nào tạo table mới hoặc tính năng mới có gọi AI/external service, 
+7. **API Route per Feature**: Bất cứ khi nào tạo table mới hoặc tính năng mới có gọi AI/external service,
    BẮT BUỘC tạo kèm file `app/api/[tên-chức-năng]/route.ts` tương ứng.
+8. **User Authentication on Every Table**: Mọi truy vấn tới Supabase (SELECT, INSERT, UPDATE, DELETE) trên bất kỳ bảng nào chứa dữ liệu người dùng tại các API Route BẮT BUỘC phải:
+   - Kiểm tra phiên đăng nhập hiện tại bằng `const { data: { user } } = await supabase.auth.getUser()` **trước** khi thực hiện bất kỳ thao tác DB nào.
+   - Trả về `401` nếu `user` là `null` hoặc chưa đăng nhập.
+   - Luôn filter bằng `.eq("user_id", user.id)` khi SELECT/UPDATE/DELETE để đảm bảo mỗi user chỉ đọc/ghi được dữ liệu của chính họ.
+   - Luôn gán `user_id: user.id` khi INSERT để liên kết bản ghi với đúng tài khoản.
+   - TUYỆT ĐỐI KHÔNG fetch toàn bộ bảng mà không có điều kiện `user_id` (trừ bảng public read-only như `topics`, `categories`, `question_bank`).
+
 
 ## Git Branch Naming Convention
 

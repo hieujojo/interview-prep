@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAIProviderStore } from "@/stores/aiProviderStore";
 
 export type CVSkills = {
@@ -83,10 +83,32 @@ export type CVAnalysisResult = {
 export function useCVAnalysis() {
   const [result, setResult] = useState<CVAnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { currentProvider, setFallbackActive, setAIDisabled } = useAIProviderStore();
 
-  const analyze = async (cvText: string) => {
+  // Auto-load most recent CV analysis from DB on mount
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSaved() {
+      try {
+        const res = await fetch("/api/cv-analysis");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && data) {
+          setResult(data as CVAnalysisResult);
+        }
+      } catch {
+        // silently ignore — user simply hasn't analyzed a CV yet
+      } finally {
+        if (!cancelled) setIsLoaded(true);
+      }
+    }
+    loadSaved();
+    return () => { cancelled = true; };
+  }, []);
+
+  const analyze = useCallback(async (cvText: string) => {
     setIsAnalyzing(true);
     setError(null);
 
@@ -122,9 +144,9 @@ export function useCVAnalysis() {
     } finally {
       setIsAnalyzing(false);
     }
-  };
+  }, [currentProvider, setFallbackActive, setAIDisabled]);
 
-  const reset = () => setResult(null);
+  const reset = useCallback(() => setResult(null), []);
 
-  return { analyze, result, setResult, isAnalyzing, error, reset };
+  return { analyze, result, setResult, isAnalyzing, isLoaded, error, reset };
 }

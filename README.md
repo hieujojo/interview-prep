@@ -47,6 +47,7 @@ Nền tảng luyện phỏng vấn kỹ thuật toàn diện, mọi tính năng 
 - Chọn chủ đề và độ khó, AI tự động sinh câu hỏi phù hợp
 - Trả lời → AI chấm điểm, nhận xét chi tiết và đưa ra câu trả lời mẫu tốt hơn
 - Hỗ trợ gợi ý (hint) khi bí, AI giải thích từng bước
+- **Gợi ý từ CV**: Nếu đã phân tích CV, hệ thống tự động gợi ý topic/category phù hợp với level hiện tại, kèm lý do cụ thể và nhóm 🔥 Challenge cho topic nâng cao — nhấn chip để chọn topic ngay lập tức
 - Toàn bộ lịch sử phỏng vấn được lưu để xem lại
 
 ### 🔍 Code Review AI (`/code-review`)
