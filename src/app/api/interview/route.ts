@@ -78,8 +78,7 @@ Chấm điểm theo 4 tiêu chí, mỗi tiêu chí 0-10:
    - 0: Không biết best practices
 
 Công thức tính điểm tổng:
-score = round((technical * 0.4) + (problemSolving * 0.25) + (communication * 0.2) + (bestPractices * 0.15))
-
+score = max(1, round((technical * 0.4) + (problemSolving * 0.25) + (communication * 0.2) + (bestPractices * 0.15)))
 QUY TẮC VIẾT FEEDBACK:
 - "strengths": chỉ liệt kê những gì ứng viên THỰC SỰ đã nói đúng, không tự thêm.
 - "gaps":  CHỈ liệt kê những gì câu hỏi YÊU CẦU mà ứng viên bỏ sót.

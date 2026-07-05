@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { checkRateLimit } from "@/lib/rateLimit";
 
-// GET /api/documents — list with filters
+// GET /api/documents — list current user's documents with filters
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
       topics:topic_id(name),
       categories:category_id(name)
     `, { count: "exact" })
-    .eq("is_public", true)
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -89,6 +89,7 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabase
     .from("documents")
     .insert({
+      user_id: user.id,
       title,
       file_url: file_path, // store path, not signed URL (signs expire)
       file_name,
@@ -96,7 +97,7 @@ export async function POST(req: NextRequest) {
       topic_id: topic_id || null,
       category_id: category_id || null,
       difficulty: difficulty || null,
-      is_public: true,
+      is_public: false,
     })
     .select()
     .single();
