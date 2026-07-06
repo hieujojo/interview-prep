@@ -9,6 +9,7 @@ import { CVRecommendationsPanel } from "@/components/interview/CVRecommendations
 import { NoteDrawer } from '@/components/notes/NoteDrawer';
 import { ScoreBreakdown } from "@/components/interview/ScoreBreakdown";
 import { useState } from 'react';
+import { MarkdownContent } from "@/components/interview/MarkdownContent";
 
 function getTopicLogo(topicName: string) {
   const name = topicName.toLowerCase();
@@ -44,7 +45,7 @@ function FeedbackSection({ icon, label, content, color, bg }: {
       <p className="text-[13px] font-extrabold uppercase tracking-widest mb-3 flex items-center gap-2" style={{ color }}>
         <span className="text-lg">{icon}</span> {label}
       </p>
-      <p className="text-[15px] whitespace-pre-wrap leading-relaxed text-foreground">{content}</p>
+      <MarkdownContent content={content} />
     </div>
   );
 }
@@ -65,9 +66,7 @@ function ExampleBlock({ content }: { content: string }) {
       >
         <span className="text-lg">📌</span> Câu trả lời mẫu
       </p>
-      <pre className="text-[14px] font-mono whitespace-pre-wrap leading-relaxed text-foreground overflow-x-auto">
-        {content}
-      </pre>
+     <MarkdownContent content={content} />
     </div>
   );
 }
@@ -248,7 +247,7 @@ export const InterviewView = () => {
                 onClick={() => setMode("custom")}
                 className={`relative z-10 px-5 py-2 rounded-xl text-sm font-bold transition-colors duration-300 ${mode === "custom" ? "text-white" : "text-muted hover:text-foreground"}`}
               >
-                🎯 Chế độ tùy chỉnh
+                🎯 Custom mode
               </button>
               <div className="opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-200 ease-out pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50">
                 <div className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap" style={{ background: "var(--surface)", border: "1px solid rgba(139,92,246,0.35)", color: "var(--foreground)", boxShadow: "0 8px 24px -4px rgba(0,0,0,0.4)" }}>

@@ -9,7 +9,7 @@ export type AIReviewResult = {
   improvements: string;
   example: string;
   score: number;
-  categoryScores?: {
+  categoryScores: {
     technical: number;
     problemSolving: number;
     communication: number;

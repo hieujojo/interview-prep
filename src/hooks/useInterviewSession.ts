@@ -190,7 +190,7 @@ export function useInterviewSession(reviewFn: ReviewFn) {
         body: JSON.stringify({ question: currentQuestion.content, provider: currentProvider }),
       });
       const data = await res.json();
-      
+
       if (res.status === 503 && data.error === "AI_DISABLED") {
         setAIDisabled(true);
         alert("Hệ thống AI hiện đang bảo trì, không thể lấy gợi ý.");
@@ -350,13 +350,33 @@ export function useInterviewSession(reviewFn: ReviewFn) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
 
+  // Chặn double-call tuyệt đối bằng ref (không phụ thuộc vào state async)
+  const hasSavedRef = useRef(false);
+
   const saveSession = useCallback(async () => {
-    if (isSaving || isSaved) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setSaveError("Bạn chưa đăng nhập. Vui lòng đăng nhập lại.");
+    const callTs = Date.now();
+    console.log("🚀 [SAVE] called. isSaving:", isSaving, "isSaved:", isSaved, "hasSavedRef:", hasSavedRef.current, "at", callTs);
+
+    if (hasSavedRef.current) {
+      console.log("⛔ [SAVE] blocked by hasSavedRef, ts:", callTs);
       return;
     }
+    if (isSaving || isSaved) {
+      console.log("⛔ [SAVE] blocked by state guard, ts:", callTs);
+      return;
+    }
+    hasSavedRef.current = true; // khóa ngay lập tức, đồng bộ, không chờ setState
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    console.log("👤 [SAVE] getUser result. user:", user?.id, "error:", JSON.stringify(userError));
+
+    if (!user) {
+      console.log("⛔ [SAVE] no user, aborting, ts:", callTs);
+      setSaveError("Bạn chưa đăng nhập. Vui lòng đăng nhập lại.");
+      hasSavedRef.current = false; // cho phép retry nếu do lỗi auth tạm thời
+      return;
+    }
+
     setIsSaving(true);
     setSaveError(null);
     try {
@@ -366,11 +386,14 @@ export function useInterviewSession(reviewFn: ReviewFn) {
           : selections?.[0]?.topic ?? "Unknown";
 
       // 1. Insert session
+      console.log("📝 [SAVE] inserting session, topic:", sessionTopic, "at", Date.now());
       const { data: sessionData, error: sessionError } = await supabase
         .from("sessions")
         .insert({ type: "interview", topic: sessionTopic, user_id: user.id })
         .select()
         .single();
+      console.log("✅ [SAVE] session inserted, id:", sessionData?.id, "error:", JSON.stringify(sessionError));
+
       if (sessionError) {
         console.error("❌ Session Insert Error:", sessionError);
         throw sessionError;
@@ -383,14 +406,18 @@ export function useInterviewSession(reviewFn: ReviewFn) {
         question_content: a.question.content,
         category: a.question.category,
         user_answer: a.userAnswer,
-        score: a.feedback?.score ?? 0,
-        feedback: a.feedback ?? null,
+        score: Math.min(10, Math.max(1, a.feedback?.score ?? 1)),
+        feedback: a.feedback ?? null, 
         used_hint: a.usedHint ?? false,
       }));
+
+      console.log("📦 [SAVE] payload:", JSON.stringify(answersToInsert, null, 2));
+      console.log("📝 [SAVE] inserting answers, count:", answersToInsert.length, "session_id:", sessionData.id);
 
       const { error: answersError } = await supabase
         .from("answers")
         .insert(answersToInsert);
+      console.log("✅ [SAVE] answers insert result. error:", JSON.stringify(answersError));
 
       if (answersError) {
         console.error("❌ code:", answersError.code);
@@ -419,15 +446,22 @@ export function useInterviewSession(reviewFn: ReviewFn) {
           // Không throw — lỗi notes không nên block toàn bộ save
         }
       }
-    } catch (err) {
+    } catch (err: any) {
+      console.log("❌ [SAVE] caught error. name:", err?.name, "message:", err?.message, "full:", JSON.stringify(err));
       setSaveError(err instanceof Error ? err.message : "Lưu phiên phỏng vấn thất bại.");
+      hasSavedRef.current = false; // cho phép retry nếu save thất bại thật sự
     } finally {
       setIsSaving(false);
     }
-  }, [isSaving, isSaved, selections, answers]);
+  }, [isSaving, isSaved, selections, answers, inProgressNotes]);
 
   useEffect(() => {
-    if (isFinished) saveSession();
+    const ts = Date.now();
+    console.log("🔥 [EFFECT] isFinished =", isFinished, "at", ts);
+    if (isFinished) {
+      console.log("🔥 [EFFECT] calling saveSession, ts:", ts);
+      saveSession();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFinished]);
 
