@@ -26,6 +26,7 @@ export default function RootLayout({
       lang="vi"
       className={`${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
+      data-scroll-behavior="smooth"
     >
       <body className="min-h-full flex flex-col">
         <Navbar />
