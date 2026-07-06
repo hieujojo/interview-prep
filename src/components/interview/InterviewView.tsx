@@ -9,6 +9,7 @@ import { CVRecommendationsPanel } from "@/components/interview/CVRecommendations
 import { NoteDrawer } from '@/components/notes/NoteDrawer';
 import { ScoreBreakdown } from "@/components/interview/ScoreBreakdown";
 import { useState } from 'react';
+import { MarkdownContent } from "@/components/interview/MarkdownContent";
 
 function getTopicLogo(topicName: string) {
   const name = topicName.toLowerCase();
@@ -44,7 +45,7 @@ function FeedbackSection({ icon, label, content, color, bg }: {
       <p className="text-[13px] font-extrabold uppercase tracking-widest mb-3 flex items-center gap-2" style={{ color }}>
         <span className="text-lg">{icon}</span> {label}
       </p>
-      <p className="text-[15px] whitespace-pre-wrap leading-relaxed text-foreground">{content}</p>
+      <MarkdownContent content={content} />
     </div>
   );
 }
@@ -65,9 +66,7 @@ function ExampleBlock({ content }: { content: string }) {
       >
         <span className="text-lg">📌</span> Câu trả lời mẫu
       </p>
-      <pre className="text-[14px] font-mono whitespace-pre-wrap leading-relaxed text-foreground overflow-x-auto">
-        {content}
-      </pre>
+     <MarkdownContent content={content} />
     </div>
   );
 }
