@@ -4,6 +4,35 @@ import { callAI, AIDisabledError } from "@/lib/aiClient";
 import type { AIProvider } from "@/lib/aiProviders";
 import { checkRateLimit } from "@/lib/rateLimit";
 
+// ─────────────────────────────
+// GET: Lấy danh sách bài tập (public, không cần đăng nhập)
+// ─────────────────────────────
+export async function GET(req: NextRequest) {
+  const supabase = await createClient();
+  const { searchParams } = new URL(req.url);
+  const topicId = searchParams.get("topic_id");
+  const difficulty = searchParams.get("difficulty");
+
+  let query = supabase
+    .from("exercises")
+    .select("*, topics(name)")
+    .order("display_order", { ascending: true });
+
+  if (topicId) query = query.eq("topic_id", topicId);
+  if (difficulty) query = query.eq("difficulty", difficulty);
+
+  const { data, error } = await query;
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ exercises: data });
+}
+
+// ─────────────────────────────
+// POST: AI Review code + lưu vào exercise_submissions
+// ─────────────────────────────
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -20,7 +49,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { language, context, code, provider = "groq" } = await req.json();
+  const { language, context, code, provider = "groq", exerciseId = null } = await req.json();
   const aiProvider = provider as AIProvider;
 
   if (!code || code.trim().length < 5) {
@@ -64,28 +93,35 @@ Trả lời CHỈ bằng JSON theo đúng format sau, không thêm text nào kh�
 
     let parsed;
     try {
-      const cleanContent = result.content.replace(/```(?:json)?\\n?/g, '').replace(/```/g, '').trim();
+      const cleanContent = result.content.replace(/```(?:json)?\n?/g, '').replace(/```/g, '').trim();
       parsed = JSON.parse(cleanContent);
     } catch {
       return NextResponse.json({ error: "Không parse được phản hồi AI." }, { status: 500 });
     }
 
-    // Lưu kết quả code review vào DB
+    let saveWarning: string | null = null;
     try {
-      await supabase.from("code_reviews").insert({
+      const { error: insertError } = await supabase.from("exercise_submissions").insert({
         user_id: user.id,
+        exercise_id: exerciseId,
         language,
         code,
         context: context || null,
         result: parsed,
       });
-    } catch {
-      console.warn("Bỏ qua lỗi lưu code_reviews");
+      if (insertError) throw insertError;
+    } catch (err) {
+      console.warn("Lỗi lưu exercise_submissions:", err);
+      saveWarning = "Đã review xong nhưng không lưu được vào lịch sử.";
     }
 
     return NextResponse.json({
       ...parsed,
-      _meta: { usedProvider: result.usedProvider, didFallback: result.didFallback },
+      _meta: {
+        usedProvider: result.usedProvider,
+        didFallback: result.didFallback,
+        saveWarning,
+      },
     });
   } catch (err) {
     if (err instanceof AIDisabledError) {
