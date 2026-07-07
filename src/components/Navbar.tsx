@@ -10,8 +10,7 @@ import { AIProviderToggle } from "./AIProviderToggle";
 const NAV_ITEMS = [
   { label: "Phỏng vấn", href: "/interview", icon: "🎯" },
   { label: "Phân tích JD", href: "/jd-analyzer", icon: "📋" },
-  { label: "Code Review", href: "/code-review", icon: "🔍" },
-  { label: "Bài tập", href: "/exercises", icon: "💻" },
+  { label: "Luyện code", href: "/exercises", icon: "💻" },
   { label: "Tài liệu", href: "/documents", icon: "📚" },
   { label: "Thành tựu", href: "/achievements", icon: "🏆" },
   { label: "Ghi chú học tập", href: "/notes", icon: "📝" },

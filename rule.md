@@ -46,10 +46,10 @@ fix: remove duplicate supabase client, save answers to DB. Closes #11
 ## Các bảng (Tables) đã tạo trên Supabase:
 - `answers` ✅ RLS (Đã thêm `used_hint`, `user_id`, `session_id`, `question_content`, `category`. Đã DROP `question_id` do bỏ bảng `questions`)
 - `categories` ✅ RLS (Public read-only policy)
-- `code_reviews` ✅ RLS (Đã thêm cột `user_id UUID`)
+- `exercises` ✅ RLS (Public read-only. Catalog 85 bài tập, 17 topic, đã seed qua CSV import)
+- `exercise_submissions` ✅ RLS (Thay thế `code_reviews`. Lưu lịch sử nộp code + kết quả AI review, liên kết `exercise_id` nullable)
 - `cv_analyses` ✅ RLS (Đã tạo để lưu CV analysis, bao gồm: cv_text, skills, experience, projects, education, strengths, weaknesses, learning_recommendations, interview_questions, overall_score, name, current_level, level_reason; Đã thêm `user_id UUID`)
 - `jd_analyses` ✅ RLS (Đã ALTER `session_id` → nullable; `questions_json` chứa levelReason, focusSkills, questions, exercises; Đã thêm `user_id UUID`)
-- `question_bank` ✅ RLS (Public read-only policy)
 - `sessions` ✅ RLS (Lưu interview sessions: `type`, `topic`, `user_id UUID`, `created_at`; INSERT + SELECT policy cho authenticated user)
 - `topics` ✅ RLS (Public read-only policy)
 - `user_stats` ✅ RLS (Đã thêm cột `user_id UUID`, đã thêm `preferred_provider TEXT DEFAULT 'groq'`)

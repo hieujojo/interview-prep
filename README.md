@@ -50,17 +50,15 @@ Nền tảng luyện phỏng vấn kỹ thuật toàn diện, mọi tính năng 
 - **Gợi ý từ CV**: Nếu đã phân tích CV, hệ thống tự động gợi ý topic/category phù hợp với level hiện tại, kèm lý do cụ thể và nhóm 🔥 Challenge cho topic nâng cao — nhấn chip để chọn topic ngay lập tức
 - Toàn bộ lịch sử phỏng vấn được lưu để xem lại
 
-### 🔍 Code Review AI (`/code-review`)
-- Paste code bằng bất kỳ ngôn ngữ nào, AI tự động review toàn bộ:
-  - Phát hiện bug, logic sai, edge case bị bỏ sót
-  - Chỉ ra anti-pattern và giải thích tại sao nên tránh
-  - Gợi ý cải thiện performance, readability, cấu trúc code
-- Monaco Editor với syntax highlighting
-
-### 💻 Bài tập Coding (`/exercises`)
-- Kho bài tập phân loại theo chủ đề và độ khó
-- Viết và chạy code trực tiếp trên trình duyệt
-- AI tự động chấm điểm, giải thích kết quả và gợi ý hướng tối ưu
+### 💻 Luyện Code (`/exercises`)
+- Kho bài tập coding phân loại theo chủ đề (dùng chung bảng `topics` với phần Phỏng vấn) và 5 mức độ khó (beginner → expert)
+- Chọn 1 bài tập có sẵn (đề bài + ví dụ + gợi ý tự động điền vào context) hoặc tự viết code tự do không cần chọn bài
+- Monaco Editor với syntax highlighting, hỗ trợ nhiều ngôn ngữ
+- AI tự động review toàn bộ ngay sau khi nộp:
+  - Phát hiện lỗi cú pháp, lỗi logic, edge case bị bỏ sót
+  - Chỉ ra vấn đề performance, best practices, security
+  - Đưa ra bản code cải thiện kèm giải thích, copy nhanh 1 chạm
+- Mọi lần nộp code được tự động lưu vào lịch sử (không cần bấm lưu thủ công), liên kết với đúng bài tập đã chọn
 
 ### 🏆 Thành tựu (`/achievements`)
 - Hệ thống huy hiệu tự động mở khoá theo tiến độ học tập
