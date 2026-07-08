@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { jdText, cvText, candidateName, recipientName, companyName, provider = "groq" } = await req.json();
+const { jdText, cvText, candidateName, recipientName, companyName, targetPosition, provider = "groq" } = await req.json();
   const aiProvider = provider as AIProvider;
 
   if (!jdText || jdText.trim().length < 50) {
@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
   const systemPrompt = `Bạn là một career coach chuyên giúp ứng viên IT viết email xin việc chuyên nghiệp, ấn tượng và phù hợp với từng vị trí cụ thể.
 
 QUAN TRỌNG: Bạn cần sinh ra CẢ HAI phiên bản: Tiếng Việt (có dấu đầy đủ) và Tiếng Anh (chuẩn ngữ pháp, tự nhiên).
+Nếu có "Vị trí ứng tuyển" được chỉ định rõ, email PHẢI ghi đúng tên vị trí đó trong tiêu đề và nội dung (không dùng tên chung chung của công ty/JD nếu JD có nhiều vị trí khác nhau).
 
 Nguyên tắc viết email:
 - Chủ đề (subject) ngắn gọn, hấp dẫn, đề cập vị trí và điểm nổi bật
@@ -52,7 +53,8 @@ Trả lời CHỈ bằng JSON theo đúng format sau:
   ]
 }`;
 
-  const userContent = [
+   const userContent = [
+    targetPosition?.trim() ? `Vị trí ứng tuyển: "${targetPosition.trim()}"` : "",
     `Job Description:\n${jdText}`,
     cvText ? `\nCV của ứng viên:\n${cvText}` : "",
     candidateName ? `\nTên ứng viên: ${candidateName}` : "",

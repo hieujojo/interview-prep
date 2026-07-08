@@ -26,6 +26,7 @@ export function useEmailDraft() {
       candidateName?: string;
       recipientName?: string;
       companyName?: string;
+      targetPosition?: string;
     }
   ) => {
     setIsGenerating(true);

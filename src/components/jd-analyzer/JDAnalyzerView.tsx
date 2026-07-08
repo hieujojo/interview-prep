@@ -99,6 +99,7 @@ function JDRubricPanel() {
 export default function JDAnalyzerView() {
   const {
     jdText, handleChangeJdText, analyze,
+    targetPosition, setTargetPosition,
     result, isAnalyzing, error,
     isSaving, isSaved, saveError,
     activeTab, setActiveTab,
@@ -161,6 +162,21 @@ export default function JDAnalyzerView() {
             </button>
           </label>
           <span className="text-xs" style={{ color: "var(--muted)" }}>{jdText.length} ký tự</span>
+        </div>
+        <div className="mb-3">
+          <label className="text-xs font-semibold block mb-1.5" style={{ color: "var(--foreground)" }}>
+            Vị trí bạn muốn ứng tuyển <span style={{ color: "var(--muted)", fontWeight: 400 }}>(điền nếu JD có nhiều vị trí)</span>
+          </label>
+          <input
+            type="text"
+            value={targetPosition}
+            onChange={(e) => setTargetPosition(e.target.value)}
+            placeholder='VD: "Full-stack Developer Intern"'
+            className="w-full text-sm rounded-xl px-4 py-2.5 focus:outline-none transition-all duration-200"
+            style={{ background: "var(--surface-2)", border: "1px solid var(--border-bright)", color: "var(--foreground)" }}
+            onFocus={(e) => (e.target.style.borderColor = "var(--primary)")}
+            onBlur={(e) => (e.target.style.borderColor = "var(--border-bright)")}
+          />
         </div>
         <textarea
           value={jdText}

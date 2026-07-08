@@ -61,6 +61,7 @@ export function useJDAnalyzerView(
   jdTextProp?: string
 ) {
   const [jdText, setJdText] = useState("");
+  const [targetPosition, setTargetPosition] = useState("");
   const [activeTab, setActiveTab] = useState<"questions" | "company" | "roadmap">("questions");
   const [showMatchModal, setShowMatchModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -144,7 +145,7 @@ export function useJDAnalyzerView(
       const res = await fetch("/api/jd-analysis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jdText, provider: currentProvider }),
+        body: JSON.stringify({ jdText, provider: currentProvider, targetPosition }),
       });
       const data = await res.json();
       
@@ -213,6 +214,8 @@ export function useJDAnalyzerView(
   return {
     jdText,
     handleChangeJdText,
+    targetPosition,
+    setTargetPosition,
     analyze,
     result,
     setResult,

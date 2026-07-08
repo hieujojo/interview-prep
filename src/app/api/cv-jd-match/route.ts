@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { cvText, jdText, provider = "groq" } = await req.json();
+  const { cvText, jdText, provider = "groq", targetPosition } = await req.json();
   const aiProvider = provider as AIProvider;
 
   if (!cvText || cvText.trim().length < 50)
@@ -29,7 +29,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Job Description quá ngắn." }, { status: 400 });
 
   const systemPrompt = `Bạn là một senior technical recruiter người Việt với 10+ năm tuyển dụng IT, đặc biệt am hiểu thị trường Đà Nẵng và các thành phố tỉnh lẻ Việt Nam.
-
+=== VỊ TRÍ ỨNG TUYỂN CỤ THỂ ===
+Nếu JD liệt kê nhiều vị trí tuyển dụng khác nhau và người dùng đã chỉ định "Vị trí ứng tuyển" cụ thể ở phần user message, CHỈ đối chiếu CV với đúng phần yêu cầu của vị trí đó (matchedSkills, missingSkills, verdict, learningPath, interviewReadiness... đều phải bám sát đúng vị trí này), bỏ qua hoàn toàn các vị trí khác trong JD. Nếu không có vị trí được chỉ định nhưng JD có nhiều vị trí, hãy tự chọn vị trí phù hợp nhất với CV và ghi rõ trong "verdictReason" là đã chọn vị trí nào.
 === BỐI CẢNH THỊ TRƯỜNG BẮT BUỘC PHẢI ÁP DỤNG ===
 
 THỊ TRƯỜNG ĐÀ NẴNG 2024–2026 (thực tế khắc nghiệt):
@@ -261,7 +262,10 @@ Trả lời CHỈ bằng JSON, không thêm bất kỳ text nào ngoài JSON:
         { role: "system", content: systemPrompt },
         {
           role: "user",
-          content: `CV của ứng viên:\n\n${cvText}\n\n---\n\nJob Description:\n\n${jdText}`,
+          content:
+            (targetPosition && targetPosition.trim()
+              ? `Vị trí ứng tuyển: "${targetPosition.trim()}"\n\n`
+              : "") + `CV của ứng viên:\n\n${cvText}\n\n---\n\nJob Description:\n\n${jdText}`,
         },
       ],
       response_format: { type: "json_object" },
