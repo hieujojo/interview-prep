@@ -94,7 +94,7 @@ export function useCVJDMatch() {
   const [error, setError] = useState<string | null>(null);
   const { currentProvider, setFallbackActive, setAIDisabled } = useAIProviderStore();
 
-  const match = async (cvText: string, jdText: string) => {
+  const match = async (cvText: string, jdText: string, targetPosition?: string) => {
     setIsMatching(true);
     setError(null);
 
@@ -102,7 +102,7 @@ export function useCVJDMatch() {
       const res = await fetch("/api/cv-jd-match", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cvText, jdText, provider: currentProvider }),
+        body: JSON.stringify({ cvText, jdText, provider: currentProvider, targetPosition }),
       });
 
       const data = await res.json();
