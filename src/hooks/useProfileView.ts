@@ -1,9 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useUploadFile } from "@/hooks/useUploadFile";
+import { useCVAnalysis } from "@/hooks/useCVAnalysis";
 import type { CVInterviewQuestion } from "@/hooks/useCVAnalysis";
 
+// Hook cho trang app/profile/page.tsx — quản lý cvText + gọi phân tích CV
+export function useProfilePage() {
+  const [cvText, setCvText] = useState("");
+  const { analyze, result, isAnalyzing, error, reset } = useCVAnalysis();
+
+  // useCVAnalysis đã tự fetch bản phân tích gần nhất khi mount,
+  // ở đây chỉ đồng bộ cvText hiển thị theo kết quả đó, KHÔNG fetch API lần 2.
+  useEffect(() => {
+    if (result?.cvText) {
+      setCvText(result.cvText);
+    }
+  }, [result]);
+
+  const handleChangeCvText = (text: string) => {
+    setCvText(text);
+    if (result) reset();
+  };
+
+  return {
+    cvText,
+    onChangeCvText: handleChangeCvText,
+    onAnalyze: () => analyze(cvText),
+    isAnalyzing,
+    error,
+    result,
+  };
+}
+
+// Hook cho component ProfileView.tsx — quản lý tab, upload file, copy câu hỏi
 export function useProfileView(onChangeCvText: (text: string) => void) {
   const [activeTab, setActiveTab] = useState<"overview" | "questions" | "learning">("overview");
   const [copiedQuestion, setCopiedQuestion] = useState<number | null>(null);

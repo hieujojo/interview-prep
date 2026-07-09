@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useAIProviderStore } from "@/stores/aiProviderStore";
 
 export type CVSkills = {
@@ -66,9 +66,12 @@ export type CVOverallScore = {
 };
 
 export type CVAnalysisResult = {
+  cvText: string;
   name: string | null;
-  currentLevel: "Junior" | "Mid" | "Senior";
+  currentLevel: "Intern" | "Fresher" | "Junior" | "Middle" | "Senior";
   levelReason: string;
+  levelConfidence?: "Cao" | "Trung bình" | "Thấp";
+  levelNote?: string;
   skills: CVSkills;
   experience: CVExperience[];
   projects: CVProject[];
@@ -108,7 +111,7 @@ export function useCVAnalysis() {
     return () => { cancelled = true; };
   }, []);
 
-  const analyze = useCallback(async (cvText: string) => {
+  const analyze = async (cvText: string) => {
     setIsAnalyzing(true);
     setError(null);
 
@@ -144,9 +147,9 @@ export function useCVAnalysis() {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [currentProvider, setFallbackActive, setAIDisabled]);
+  };
 
-  const reset = useCallback(() => setResult(null), []);
+  const reset = () => setResult(null);
 
   return { analyze, result, setResult, isAnalyzing, isLoaded, error, reset };
 }

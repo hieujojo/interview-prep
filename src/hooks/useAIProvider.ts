@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useAIProviderStore } from "@/stores/aiProviderStore";
 import type { AIProvider } from "@/lib/aiProviders";
 
@@ -6,26 +6,25 @@ export function useAIProvider() {
   const { currentProvider, setProvider, isFallbackActive, isAIDisabled, reset } = useAIProviderStore();
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchProvider = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const res = await fetch("/api/ai-provider");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.provider) {
-          setProvider(data.provider as AIProvider);
-        }
-      }
-    } catch (err) {
-      console.error("Loi lay AI provider:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [setProvider]);
-
   useEffect(() => {
+    async function fetchProvider() {
+      try {
+        setIsLoading(true);
+        const res = await fetch("/api/ai-provider");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.provider) {
+            setProvider(data.provider as AIProvider);
+          }
+        }
+      } catch (err) {
+        console.error("Loi lay AI provider:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
     fetchProvider();
-  }, [fetchProvider]);
+  }, [setProvider]);
 
   const changeProvider = async (newProvider: AIProvider) => {
     // Optimistic update

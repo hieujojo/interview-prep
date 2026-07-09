@@ -61,11 +61,12 @@ export function useJDAnalyzerView(
   jdTextProp?: string
 ) {
   const [jdText, setJdText] = useState("");
+  const [targetPosition, setTargetPosition] = useState("");
   const [activeTab, setActiveTab] = useState<"questions" | "company" | "roadmap">("questions");
   const [showMatchModal, setShowMatchModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [matchCvText, setMatchCvText] = useState("");
-  const [hasSavedCV, setHasSavedCV] = useState(false);
+  const hasSavedCV = matchCvText.trim().length > 0;
   const [result, setResult] = useState<JDAnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,7 +118,6 @@ export function useJDAnalyzerView(
         if (!res.ok) return;
         const data = await res.json();
         if (data?.cvText) {
-          setHasSavedCV(true);
           setMatchCvText(data.cvText);
         }
       } catch (e) {
@@ -144,7 +144,7 @@ export function useJDAnalyzerView(
       const res = await fetch("/api/jd-analysis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jdText, provider: currentProvider }),
+        body: JSON.stringify({ jdText, provider: currentProvider, targetPosition }),
       });
       const data = await res.json();
       
@@ -213,6 +213,8 @@ export function useJDAnalyzerView(
   return {
     jdText,
     handleChangeJdText,
+    targetPosition,
+    setTargetPosition,
     analyze,
     result,
     setResult,

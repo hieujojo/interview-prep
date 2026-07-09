@@ -51,8 +51,6 @@ async function callGroq(params: Omit<CallAIParams, "provider">): Promise<string>
   if (params.response_format) body.response_format = params.response_format;
 
   const t0 = Date.now();
-  console.log(`[AI:groq] Sending | model=${config.model} | max_tokens=${body.max_tokens}`);
-
   const response = await fetch(`${config.baseURL}/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
@@ -73,12 +71,6 @@ async function callGroq(params: Omit<CallAIParams, "provider">): Promise<string>
 
   const data = await response.json();
   const finishReason = data.choices?.[0]?.finish_reason;
-  const usage = data.usage;
-  console.log(
-    `[AI:groq] Done in ${httpMs}ms | finish=${finishReason} | ` +
-    `prompt=${usage?.prompt_tokens}tok | output=${usage?.completion_tokens}tok`
-  );
-
   if (finishReason === "length") {
     throw Object.assign(
       new Error("Provider groq bi cat ngang (finish_reason=length)"),
@@ -121,7 +113,6 @@ async function callGemini(params: Omit<CallAIParams, "provider">): Promise<strin
   }
 
   const t0 = Date.now();
-  console.log(`[AI:gemini] Sending | model=${config.model} | maxOutputTokens=${generationConfig.maxOutputTokens} | thinking=OFF`);
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${apiKey}`,
@@ -167,11 +158,6 @@ async function callGemini(params: Omit<CallAIParams, "provider">): Promise<strin
 
   const candidate = data.candidates?.[0];
   const finishReason = candidate?.finishReason;
-  const usage = data.usageMetadata;
-  console.log(
-    `[AI:gemini] Done in ${httpMs}ms | finish=${finishReason} | ` +
-    `prompt=${usage?.promptTokenCount}tok | output=${usage?.candidatesTokenCount}tok | thinking=${usage?.thoughtsTokenCount ?? 0}tok`
-  );
 
   if (finishReason === "MAX_TOKENS") {
     throw Object.assign(

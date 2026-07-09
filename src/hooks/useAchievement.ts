@@ -242,6 +242,8 @@ export function useAchievement(data: DashboardData | null): AchievementState {
     }
 
     persistNewAchievements();
+    // Bỏ qua unlockedAchievements vì nó được compute từ các property của data,
+    // đưa vào deps array sẽ gây ra re-render loop hoặc các warning khác.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.totalSessions, data?.streakDays, data?.averageScore, data?.topicsCovered.length]);
 
