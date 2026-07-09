@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAIProviderStore } from "@/stores/aiProviderStore";
 import { supabase } from "@/lib/supabase";
 import type { AIReviewResult } from "@/hooks/useAIReview";
@@ -138,6 +138,8 @@ export function useInterviewSession(reviewFn: ReviewFn) {
     }
 
     fetchQuestions();
+    // selections là object/array nên cần stringify để so sánh deep equality.
+    // Không thể đưa selections trực tiếp vì reference thay đổi mỗi render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(selections)]);
 
@@ -152,6 +154,8 @@ export function useInterviewSession(reviewFn: ReviewFn) {
     } else {
       router.replace("/interview");
     }
+    // router từ useRouter() có stable reference, không cần đưa vào deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selections, isFinished]);
 
   const setUserAnswer = (text: string) =>
@@ -270,7 +274,10 @@ export function useInterviewSession(reviewFn: ReviewFn) {
     recognition.onerror = () => setIsListening(false);
     recognition.onend = () => setIsListening(false);
     recognitionRef.current = recognition;
-  }, [currentIndex, current?.feedback]); // eslint-disable-line
+    // Effect chỉ cần re-init SpeechRecognition khi chuyển câu hỏi hoặc đã có feedback.
+    // Các deps còn lại (current, setUserAnswer) là closure intentional để đọc giá trị mới nhất qua ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, current?.feedback]);
 
   const toggleListening = () => {
     if (isListening) {
@@ -337,7 +344,11 @@ export function useInterviewSession(reviewFn: ReviewFn) {
     if (timeLeft !== 0 || !current || current.feedback || isReviewing || isFinished) return;
     if (current.userAnswer.trim().length === 0) setUserAnswer("Hết giờ - Không có câu trả lời.");
     handleSubmitReview();
-  }, [timeLeft]); // eslint-disable-line
+    // Chỉ trigger khi timeLeft thay đổi (đếm ngược). Các deps còn lại (current, isReviewing,
+    // isFinished, handleSubmitReview, setUserAnswer) đã được guard bởi early return condition,
+    // thêm vào sẽ gây auto-submit sai thời điểm khi các state đó thay đổi.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft]);
 
   const handleNext = () => {
     if (isListening) toggleListening();
@@ -353,83 +364,82 @@ export function useInterviewSession(reviewFn: ReviewFn) {
   // Chặn double-call tuyệt đối bằng ref (không phụ thuộc vào state async)
   const hasSavedRef = useRef(false);
 
-  const saveSession = useCallback(async () => {
-    const callTs = Date.now();
+  useEffect(() => {
+    if (!isFinished || hasSavedRef.current) return;
     hasSavedRef.current = true; // khóa ngay lập tức, đồng bộ, không chờ setState
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    async function saveSession() {
+      const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
-      setSaveError("Bạn chưa đăng nhập. Vui lòng đăng nhập lại.");
-      hasSavedRef.current = false; // cho phép retry nếu do lỗi auth tạm thời
-      return;
-    }
-
-    setIsSaving(true);
-    setSaveError(null);
-    try {
-      const sessionTopic =
-        selections && selections.length > 1
-          ? selections.map((s) => s.topic).join(", ")
-          : selections?.[0]?.topic ?? "Unknown";
-
-      // 1. Insert session
-      const { data: sessionData, error: sessionError } = await supabase
-        .from("sessions")
-        .insert({ type: "interview", topic: sessionTopic, user_id: user.id })
-        .select()
-        .single();
-
-      if (sessionError) {
-        console.error("❌ Session Insert Error:", sessionError);
-        throw sessionError;
+      if (!user) {
+        setSaveError("Bạn chưa đăng nhập. Vui lòng đăng nhập lại.");
+        hasSavedRef.current = false; // cho phép retry nếu do lỗi auth tạm thời
+        return;
       }
 
-      // 2. Insert tất cả answers kèm session_id
-      const answersToInsert = answers.map((a) => ({
-        user_id: user.id,
-        session_id: sessionData.id,
-        question_content: a.question.content,
-        category: a.question.category,
-        user_answer: a.userAnswer,
-        score: Math.min(10, Math.max(1, a.feedback?.score ?? 1)),
-        feedback: a.feedback ?? null, 
-        used_hint: a.usedHint ?? false,
-      }));
+      setIsSaving(true);
+      setSaveError(null);
+      try {
+        const sessionTopic =
+          selections && selections.length > 1
+            ? selections.map((s) => s.topic).join(", ")
+            : selections?.[0]?.topic ?? "Unknown";
 
-      const { error: answersError } = await supabase
-        .from("answers")
-        .insert(answersToInsert);
+        // 1. Insert session
+        const { data: sessionData, error: sessionError } = await supabase
+          .from("sessions")
+          .insert({ type: "interview", topic: sessionTopic, user_id: user.id })
+          .select()
+          .single();
 
-      setIsSaved(true);
-      const notesToSave = inProgressNotes.filter(n => n.noteText.trim().length > 0);
-      if (notesToSave.length > 0) {
-        const notesPayload = notesToSave.map(n => ({
+        if (sessionError) {
+          console.error("❌ Session Insert Error:", sessionError);
+          throw sessionError;
+        }
+
+        // 2. Insert tất cả answers kèm session_id
+        const answersToInsert = answers.map((a) => ({
           user_id: user.id,
           session_id: sessionData.id,
-          question_index: n.questionIndex,
-          question_content: n.questionContent,
-          note_text: n.noteText,
+          question_content: a.question.content,
+          category: a.question.category,
+          user_answer: a.userAnswer,
+          score: Math.min(10, Math.max(1, a.feedback?.score ?? 1)),
+          feedback: a.feedback ?? null,
+          used_hint: a.usedHint ?? false,
         }));
 
-        const { error: notesError } = await supabase
-          .from("session_notes")
-          .insert(notesPayload);
+        const { error: answersError } = await supabase
+          .from("answers")
+          .insert(answersToInsert);
 
+        setIsSaved(true);
+        const notesToSave = inProgressNotes.filter(n => n.noteText.trim().length > 0);
+        if (notesToSave.length > 0) {
+          const notesPayload = notesToSave.map(n => ({
+            user_id: user.id,
+            session_id: sessionData.id,
+            question_index: n.questionIndex,
+            question_content: n.questionContent,
+            note_text: n.noteText,
+          }));
+
+          const { error: notesError } = await supabase
+            .from("session_notes")
+            .insert(notesPayload);
+        }
+      } catch (err: any) {
+        setSaveError(err instanceof Error ? err.message : "Lưu phiên phỏng vấn thất bại.");
+        hasSavedRef.current = false; // cho phép retry nếu save thất bại thật sự
+      } finally {
+        setIsSaving(false);
       }
-    } catch (err: any) {
-      setSaveError(err instanceof Error ? err.message : "Lưu phiên phỏng vấn thất bại.");
-      hasSavedRef.current = false; // cho phép retry nếu save thất bại thật sự
-    } finally {
-      setIsSaving(false);
     }
-  }, [isSaving, isSaved, selections, answers, inProgressNotes]);
 
-  useEffect(() => {
-    const ts = Date.now();
-    if (isFinished) {
-      saveSession();
-    }
+    saveSession();
+    // Effect chỉ chạy khi phiên kết thúc (isFinished chuyển sang true).
+    // selections, answers, inProgressNotes là snapshot tại thời điểm finish,
+    // không cần react lại khi chúng thay đổi vì save chỉ xảy ra 1 lần.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFinished]);
 

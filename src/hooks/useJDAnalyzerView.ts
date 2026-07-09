@@ -66,7 +66,7 @@ export function useJDAnalyzerView(
   const [showMatchModal, setShowMatchModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [matchCvText, setMatchCvText] = useState("");
-  const [hasSavedCV, setHasSavedCV] = useState(false);
+  const hasSavedCV = matchCvText.trim().length > 0;
   const [result, setResult] = useState<JDAnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +118,6 @@ export function useJDAnalyzerView(
         if (!res.ok) return;
         const data = await res.json();
         if (data?.cvText) {
-          setHasSavedCV(true);
           setMatchCvText(data.cvText);
         }
       } catch (e) {
