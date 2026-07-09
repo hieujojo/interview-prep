@@ -355,23 +355,11 @@ export function useInterviewSession(reviewFn: ReviewFn) {
 
   const saveSession = useCallback(async () => {
     const callTs = Date.now();
-    console.log("🚀 [SAVE] called. isSaving:", isSaving, "isSaved:", isSaved, "hasSavedRef:", hasSavedRef.current, "at", callTs);
-
-    if (hasSavedRef.current) {
-      console.log("⛔ [SAVE] blocked by hasSavedRef, ts:", callTs);
-      return;
-    }
-    if (isSaving || isSaved) {
-      console.log("⛔ [SAVE] blocked by state guard, ts:", callTs);
-      return;
-    }
     hasSavedRef.current = true; // khóa ngay lập tức, đồng bộ, không chờ setState
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    console.log("👤 [SAVE] getUser result. user:", user?.id, "error:", JSON.stringify(userError));
 
     if (!user) {
-      console.log("⛔ [SAVE] no user, aborting, ts:", callTs);
       setSaveError("Bạn chưa đăng nhập. Vui lòng đăng nhập lại.");
       hasSavedRef.current = false; // cho phép retry nếu do lỗi auth tạm thời
       return;
@@ -386,13 +374,11 @@ export function useInterviewSession(reviewFn: ReviewFn) {
           : selections?.[0]?.topic ?? "Unknown";
 
       // 1. Insert session
-      console.log("📝 [SAVE] inserting session, topic:", sessionTopic, "at", Date.now());
       const { data: sessionData, error: sessionError } = await supabase
         .from("sessions")
         .insert({ type: "interview", topic: sessionTopic, user_id: user.id })
         .select()
         .single();
-      console.log("✅ [SAVE] session inserted, id:", sessionData?.id, "error:", JSON.stringify(sessionError));
 
       if (sessionError) {
         console.error("❌ Session Insert Error:", sessionError);
@@ -411,20 +397,9 @@ export function useInterviewSession(reviewFn: ReviewFn) {
         used_hint: a.usedHint ?? false,
       }));
 
-      console.log("📦 [SAVE] payload:", JSON.stringify(answersToInsert, null, 2));
-      console.log("📝 [SAVE] inserting answers, count:", answersToInsert.length, "session_id:", sessionData.id);
-
       const { error: answersError } = await supabase
         .from("answers")
         .insert(answersToInsert);
-      console.log("✅ [SAVE] answers insert result. error:", JSON.stringify(answersError));
-
-      if (answersError) {
-        console.error("❌ code:", answersError.code);
-        console.error("❌ message:", answersError.message);
-        console.error("❌ details:", answersError.details);
-        throw answersError;
-      }
 
       setIsSaved(true);
       const notesToSave = inProgressNotes.filter(n => n.noteText.trim().length > 0);
@@ -441,13 +416,8 @@ export function useInterviewSession(reviewFn: ReviewFn) {
           .from("session_notes")
           .insert(notesPayload);
 
-        if (notesError) {
-          console.error("❌ Notes Insert Error:", notesError);
-          // Không throw — lỗi notes không nên block toàn bộ save
-        }
       }
     } catch (err: any) {
-      console.log("❌ [SAVE] caught error. name:", err?.name, "message:", err?.message, "full:", JSON.stringify(err));
       setSaveError(err instanceof Error ? err.message : "Lưu phiên phỏng vấn thất bại.");
       hasSavedRef.current = false; // cho phép retry nếu save thất bại thật sự
     } finally {
@@ -457,9 +427,7 @@ export function useInterviewSession(reviewFn: ReviewFn) {
 
   useEffect(() => {
     const ts = Date.now();
-    console.log("🔥 [EFFECT] isFinished =", isFinished, "at", ts);
     if (isFinished) {
-      console.log("🔥 [EFFECT] calling saveSession, ts:", ts);
       saveSession();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

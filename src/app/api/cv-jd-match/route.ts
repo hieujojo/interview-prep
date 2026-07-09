@@ -276,8 +276,6 @@ Trả lời CHỈ bằng JSON, không thêm bất kỳ text nào ngoài JSON:
     let parsed: unknown;
     try {
       const cleanContent = result.content.replace(/```(?:json)?\\n?/g, '').replace(/```/g, '').trim();
-      console.log('--- [CV-JD MATCH] AI RAW RESPONSE ---', result.content);
-      console.log('--- [CV-JD MATCH] CLEANED CONTENT ---', cleanContent);
       parsed = JSON.parse(cleanContent);
     } catch (err) {
       console.error('[CV-JD MATCH] Parse error:', err);
