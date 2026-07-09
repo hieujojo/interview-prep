@@ -60,8 +60,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Lỗi kết nối Supabase Storage: ${uploadError?.message}` }, { status: 500 });
     }
 
-    console.log(`[Upload API] Tạo signed URL thành công!`);
-
     return NextResponse.json({
       signedUrl: uploadData.signedUrl,
       token: uploadData.token, // Might be useful if we use uploadToSignedUrl
