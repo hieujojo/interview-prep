@@ -1,21 +1,7 @@
 "use client";
 
-import type {
-  CVAnalysisResult,
-  CVInterviewQuestion,
-  CVLearningRecommendation,
-} from "@/hooks/useCVAnalysis";
-import { useProfileView } from "@/hooks/useProfileView";
+import { useProfilePage, useProfileView } from "@/hooks/useProfileView";
 import { useState } from "react";
-
-type Props = {
-  cvText: string;
-  onChangeCvText: (text: string) => void;
-  onAnalyze: () => void;
-  isAnalyzing: boolean;
-  error: string | null;
-  result: CVAnalysisResult | null;
-};
 
 const PRIORITY_STYLE: Record<string, { color: string; bg: string }> = {
   Cao: { color: "var(--danger)", bg: "var(--danger-bg)" },
@@ -191,9 +177,11 @@ function CVRubricPanel() {
   );
 }
 
-export default function ProfileView({
-  cvText, onChangeCvText, onAnalyze, isAnalyzing, error, result,
-}: Props) {
+export default function ProfileView() {
+  const {
+    cvText, onChangeCvText, onAnalyze, isAnalyzing, error, result,
+  } = useProfilePage();
+
   const {
     activeTab, setActiveTab,
     isUploading, fileInputRef, triggerUpload, handleFileUpload, handleDrop,
@@ -210,9 +198,9 @@ export default function ProfileView({
     border: "rgba(139,92,246,0.3)",
   };
 
-  // Lấy 2 trường mới từ API
-  const levelConfidence = (result as any)?.levelConfidence as string | undefined;
-  const levelNote = (result as any)?.levelNote as string | undefined;
+  // Lấy 2 trường mới từ API (đã có type chính thức trong CVAnalysisResult)
+  const levelConfidence = result?.levelConfidence;
+  const levelNote = result?.levelNote;
 
   return (
     <div className="space-y-6 animate-fadeInUp">

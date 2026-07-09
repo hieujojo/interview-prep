@@ -66,9 +66,12 @@ export type CVOverallScore = {
 };
 
 export type CVAnalysisResult = {
+  cvText: string;
   name: string | null;
-  currentLevel: "Junior" | "Mid" | "Senior";
+  currentLevel: "Intern" | "Fresher" | "Junior" | "Middle" | "Senior";
   levelReason: string;
+  levelConfidence?: "Cao" | "Trung bình" | "Thấp";
+  levelNote?: string;
   skills: CVSkills;
   experience: CVExperience[];
   projects: CVProject[];
