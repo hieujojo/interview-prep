@@ -105,17 +105,17 @@ GIỚI HẠN ĐỘ DÀI (bắt buộc — đây KHÔNG phải bài giảng lý t
 - Nếu vi phạm giới hạn trên (viết dài, lặp lại lý thuyết, liệt kê quá chi tiết cho từng ý nhỏ), coi như feedback không đạt yêu cầu.
 
 QUY TẮC ĐỊNH DẠNG VĂN BẢN (bắt buộc, áp dụng cho MỌI field dạng text - strengths, gaps, improvements, example):
-Các field này sẽ được một markdown renderer hiển thị lại, nên phải tuân thủ đúng cú pháp sau, KHÔNG được viết dồn nhiều ý trên cùng một dòng.
+Các field này sẽ được một markdown renderer hiển thị lại, nên phải tuân thủ đúng cú pháp sau.
 
-1. Khi liệt kê từ 2 ý trở lên, PHẢI xuống dòng thật (\\n) giữa mỗi ý — tuyệt đối không viết kiểu "1. Ý một 2. Ý hai 3. Ý ba" liền trên một dòng.
-   - Danh sách có thứ tự: mỗi mục là "1. Nội dung", "2. Nội dung"... mỗi số một dòng riêng, phân cách bằng \\n\\n hoặc \\n.
-   - Danh sách không thứ tự: mỗi mục bắt đầu bằng "- Nội dung", mỗi mục một dòng riêng.
-2. Tiêu đề phụ (nếu cần chia nhóm trong một field dài) viết dạng "**Tiêu đề:**" nằm riêng một dòng, KHÔNG bôi đậm cả đoạn văn hay cả câu dài.
-3. Chỉ bôi đậm (**...**) đúng 1-3 từ khóa quan trọng mỗi ý, không bôi đậm nguyên câu.
-4. Nếu có code, PHẢI bọc trong fenced code block đúng cú pháp: ba dấu backtick, tên ngôn ngữ, xuống dòng, code, xuống dòng, ba dấu backtick (ví dụ: bọc bằng \`\`\`jsx ... \`\`\`). KHÔNG viết code lẫn vào giữa câu văn xuôi mà không có fence.
-5. Nếu cần so sánh dạng bảng, dùng đúng cú pháp markdown table (mỗi hàng một dòng riêng, có dòng phân cách |---|---|), không gộp các hàng vào một dòng.
-6. Câu văn ngắn gọn, mỗi câu tối đa 1-2 ý, tránh câu ghép quá dài nhiều mệnh đề.
-7. Nhớ rằng nội dung nằm trong JSON string, nên xuống dòng phải escape đúng chuẩn JSON (\\n), không được để line break thật làm vỡ JSON.
+1. TUYỆT ĐỐI KHÔNG sử dụng ký tự xuống dòng (Enter/line break) thật sự bên trong chuỗi JSON. Mọi sự xuống dòng phải được viết là "\\n".
+   - Danh sách có thứ tự: "1. Nội dung\\n2. Nội dung" (Dùng \\n, KHÔNG gõ Enter).
+   - Danh sách không thứ tự: "- Nội dung 1\\n- Nội dung 2".
+2. Tiêu đề phụ viết dạng "**Tiêu đề:**", cách nhau bằng "\\n".
+3. Chỉ bôi đậm (**...**) đúng 1-3 từ khóa quan trọng mỗi ý.
+4. Nếu có code, bọc trong fenced code block và ngắt dòng bằng "\\n" (ví dụ: \`\`\`jsx\\nconst a = 1;\\n\`\`\`).
+5. Nếu cần so sánh dạng bảng, dùng đúng cú pháp markdown table, các hàng cách nhau bằng "\\n".
+6. Câu văn ngắn gọn, mỗi câu tối đa 1-2 ý, tránh câu ghép quá dài.
+7. Việc sử dụng line break thật sẽ làm JSON KHÔNG HỢP LỆ (lỗi json_validate_failed). Chú ý không được để sót line break nào trong chuỗi.
 
 Trả lời CHỈ bằng JSON theo đúng format:
 {
@@ -142,17 +142,27 @@ Trả lời CHỈ bằng JSON theo đúng format:
         },
       ],
       response_format: { type: "json_object" },
-      temperature: 0.3,
+      temperature: 0,
     });
 
     let parsed;
     try {
-      const cleanContent = result.content.replace(/```(?:json)?\n?/g, "").replace(/```/g, "").trim();
-      parsed = JSON.parse(cleanContent);
+      let cleanContent = result.content.trim();
+      if (cleanContent.startsWith("```")) {
+        cleanContent = cleanContent.replace(/^```(?:json)?\n?/i, "").replace(/\n?```$/i, "");
+      }
+      parsed = JSON.parse(cleanContent.trim());
     } catch {
       console.error("AI review: failed to parse JSON. Raw content:", result.content);
       return NextResponse.json({ error: "Không parse được phản hồi AI." }, { status: 500 });
     }
+
+    // Chuẩn hoá các field text về string trước khi trả cho client, đề phòng
+    // AI trả về object/array thay vì string dù prompt đã yêu cầu string.
+    parsed.strengths = toSafeString(parsed.strengths);
+    parsed.gaps = toSafeString(parsed.gaps);
+    parsed.improvements = toSafeString(parsed.improvements);
+    parsed.example = toSafeString(parsed.example);
 
     // Điểm tổng KHÔNG bao giờ lấy từ AI tự tính — luôn tính lại từ categoryScores
     // theo công thức cố định để đảm bảo tính nhất quán và chính xác tuyệt đối.
@@ -170,6 +180,22 @@ Trả lời CHỈ bằng JSON theo đúng format:
         { status: 500 }
       );
     }
+
+
+
+// AI đôi khi trả về object/array thay vì string cho các field text
+// (strengths, gaps, improvements, example), dù prompt đã yêu cầu string.
+// Ép kiểu về string an toàn ở đây để tránh crash phía frontend
+// (MarkdownContent gọi .replace() trên content, chỉ hoạt động với string).
+function toSafeString(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value == null) return "";
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
 
     const score = Math.max(
       1,

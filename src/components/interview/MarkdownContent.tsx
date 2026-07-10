@@ -184,7 +184,13 @@ function reflowInlineCode(code: string): string {
 
 function parseMarkdownLite(rawInput: string): MDBlock[] {
   const blocks: MDBlock[] = [];
-  const preprocessed = splitInlineOrderedList(rawInput.replace(/\r\n/g, "\n"));
+  const safeInput =
+    typeof rawInput === "string"
+      ? rawInput
+      : rawInput == null
+      ? ""
+      : JSON.stringify(rawInput, null, 2);
+  const preprocessed = splitInlineOrderedList(safeInput.replace(/\r\n/g, "\n"));
   const lines = preprocessed.split("\n");
   let i = 0;
 
@@ -501,9 +507,11 @@ function MDHeading({ text }: { text: string }) {
   );
 }
 
-export function MarkdownContent({ content }: { content: string }) {
-  if (!content) return null;
-  const blocks = parseMarkdownLite(content);
+export function MarkdownContent({ content }: { content: unknown }) {
+  if (content == null || content === "") return null;
+  const blocks = parseMarkdownLite(
+    typeof content === "string" ? content : JSON.stringify(content)
+  );
 
   return (
     <div className="space-y-1">
