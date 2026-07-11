@@ -23,7 +23,7 @@ type ReviewFn = (
 ) => Promise<AIReviewResult | null>;
 
 const DIFFICULTY_ORDER = ["Cơ bản", "Trung bình", "Nâng cao"] as const;
-const TIME_PER_QUESTION = 180;
+const TIME_PER_QUESTION = 300;
 
 function shuffle<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5);
