@@ -20,7 +20,7 @@ Must match one of the 7 fixed branches in `rule.md`:
 
 | Type | Use for | Matching branch |
 |------|---------|------------------|
-| `feat` | New feature | `feat/hieu` |
+| `feat` | New feature | `feat/hieu`  |
 | `fix` | Bug fix | `fix/hieu` |
 | `refactor` | Code refactor, no functional change | `refactor/hieu` |
 | `chore` | Config, dependencies, code formatting | `chore/hieu` |
