@@ -52,23 +52,26 @@
 ---
 
 ## 🔄 4. Git Workflow (Quy chuẩn nhánh & đóng Issue)
-
+ 
 Ưu tiên sử dụng các **nhánh cố định** thay vì tạo nhánh mới cho từng thay đổi nhỏ:
-
+ 
 | Nhánh | Mục đích |
 |-------|----------|
 | `feat/hieu` | Tính năng mới |
 | `fix/hieu` | Bug fix |
 | `refactor/hieu` | Refactor code |
-| `chore/hieu` | Việc vặt (cập nhật package, cấu hình, tài liệu) |
+| `chore/hieu` | Việc vặt (cập nhật package, cấu hình, format code) |
 | `opt/hieu` | Tối ưu hiệu năng |
-
+| `docs/hieu` | Cập nhật tài liệu (README, rule.md, comment) |
+| `test/hieu` | Viết/sửa test case |
+ 
 **Quy tắc làm việc:**
 1. Chỉ tạo nhánh mới (ví dụ: `feat/module-lon`) khi đó là module lớn, độc lập. Luôn checkout nhánh mới từ `main`.
 2. Tên nhánh mới dùng chữ thường, ngăn cách bằng dấu `-`.
 3. Khi commit code để fix issue, **BẮT BUỘC** có từ khóa trong message: `Closes #<issue-number>` (VD: `fix: sửa lỗi A. Closes #11`).
 4. **KHÔNG** gửi Pull Request (PR) vào `main`.
 5. **LUÔN** gửi PR vào nhánh `release`. GitHub sẽ tự đóng issue khi PR được merge vào `release`. Nhánh `main` chỉ nhận merge từ `release` khi deploy thực tế.
+6. Commit message tuân theo chuẩn trong [`COMMIT_TEMPLATE.md`](./COMMIT_TEMPLATE.md).
 
 ---
 
