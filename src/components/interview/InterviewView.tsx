@@ -2,40 +2,17 @@
 
 import { useAIReview } from "@/hooks/useAIReview";
 import { useTopics } from "@/hooks/useTopics";
+import { useTopicGrouping } from "@/hooks/useTopicGrouping";
 import { useInterviewSession, formatTime } from "@/hooks/useInterviewSession";
 import { useCVAnalysis } from "@/hooks/useCVAnalysis";
 import { useCVTopicRecommendations } from "@/hooks/useCVTopicRecommendations";
 import { CVRecommendationsPanel } from "@/components/interview/CVRecommendationsPanel";
 import { NoteDrawer } from '@/components/notes/NoteDrawer';
 import { ScoreBreakdown } from "@/components/interview/ScoreBreakdown";
+import { TopicLogo } from "@/components/interview/TopicCard";
+import { TopicCategorySection } from "@/components/interview/TopicCategorySection";
 import { useState } from 'react';
 import { MarkdownContent } from "@/components/interview/MarkdownContent";
-
-function getTopicLogo(topicName: string) {
-  const name = topicName.toLowerCase();
-  if (name.includes("react native")) return "/logo/react-native-removebg-preview.png";
-  if (name.includes("react")) return "/logo/reactjs.png";
-  if (name.includes("html")) return "/logo/HTML5_logo_resized.png";
-  if (name.includes("css") || name.includes("tailwind")) return "/logo/css.png";
-  if (name.includes("typescript")) return "/logo/typescript-logo-png_seeklogo-526730.png";
-  if (name.includes("javascript")) return "/logo/javascript.png";
-  if (name.includes("node")) return "/logo/nodejs-new.png";
-  if (name.includes("next")) return "/logo/nextjs-new.png";
-  if (name.includes("mongo")) return "/logo/MongoDB-Emblem-2048x1280-removebg-preview.png";
-  if (name.includes("docker")) return "/logo/docker-mark-ocean-blue-removebg-preview.png";
-  if (name.includes("kỹ năng mềm") || name.includes("soft skill")) return "/logo/soft-skill.png";
-  if (name.includes("sql")) return "/logo/sql.png";
-  if (name.includes("git")) return "/logo/git5-removebg-preview.png";
-  if (name.includes(".net") || name.includes("c#")) return "/logo/dotnet_.png";
-  return "📝";
-}
-
-function TopicLogo({ name, className }: { name: string; className?: string }) {
-  const logo = getTopicLogo(name);
-  return logo.startsWith("/")
-    ? <img src={logo} alt={name} className={className ?? "w-full h-full object-contain"} />
-    : <span className="text-xl">{logo}</span>;
-}
 
 function FeedbackSection({ icon, label, content, color, bg }: {
   icon: string; label: string; content: string; color: string; bg: string;
@@ -82,7 +59,7 @@ function RubricPanel() {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="w-full">
       <button
         onClick={() => setOpen((v: boolean) => !v)}
         className="w-full flex items-center justify-between px-5 py-3 rounded-2xl text-sm font-bold transition-all"
@@ -163,6 +140,10 @@ export const InterviewView = () => {
     mode, setMode, clearCategorySelection
   } = useTopics();
 
+  // Derived data only (no side effects) — grouping is pure computation off `topics`,
+  // so it lives in its own hook and is just called here, per project rule 2.1.
+  const groupedTopics = useTopicGrouping(topics);
+
   const {
     selections, setSelections, selectedTopics, totalQuestionsSelected,
     handleToggleTopic, handleUpdateCount, startSession, resetSession,
@@ -206,6 +187,38 @@ export const InterviewView = () => {
     document.getElementById(`cv-recommendations-panel`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   };
 
+  // Tổng số câu hỏi đã chọn — dùng chung cho cả quick lẫn custom mode,
+  // được tách riêng để summary panel (bên phải) và nút submit dùng chung 1 nguồn.
+  const totalSelectedCount =
+    mode === "quick"
+      ? totalQuestionsSelected
+      : [...categorySelections.keys()].reduce((sum: number, topicName: string) => {
+          const topic = topics.find((t) => t.name === topicName);
+          if (!topic) return sum;
+          const max = getMaxForTopic(topic);
+          return sum + getCountForTopic(topicName, max);
+        }, 0);
+
+  const handleStartSession = () => {
+    if (mode === "quick") {
+      startSession();
+      return;
+    }
+    const arr = topics
+      .filter((t) => categorySelections.has(t.name))
+      .map((t) => {
+        const max = getMaxForTopic(t);
+        return {
+          topic: t.name,
+          count: getCountForTopic(t.name, max),
+          categories: [...(categorySelections.get(t.name) ?? [])],
+        };
+      });
+    if (arr.length > 0) setSelections(arr);
+  };
+
+  const isStartDisabled = mode === "quick" ? totalQuestionsSelected === 0 : categorySelections.size === 0;
+
   // ── Setup Screen ──
   if (!selections) {
     return (
@@ -230,7 +243,7 @@ export const InterviewView = () => {
             <div className="relative group">
               <button
                 onClick={() => setMode("quick")}
-                className={`relative z-10 px-5 py-2 rounded-xl text-sm font-bold transition-colors duration-300 ${mode === "quick" ? "text-white" : "text-muted hover:text-foreground"}`}
+                className={`relative z-10 px-5 py-2 rounded-xl text-sm font-bold transition-colors duration-300 focus:outline-none ${mode === "quick" ? "text-white" : "text-muted hover:text-foreground"}`}
               >
                 ⚡ Quick Mode
               </button>
@@ -245,7 +258,7 @@ export const InterviewView = () => {
             <div className="relative group">
               <button
                 onClick={() => setMode("custom")}
-                className={`relative z-10 px-5 py-2 rounded-xl text-sm font-bold transition-colors duration-300 ${mode === "custom" ? "text-white" : "text-muted hover:text-foreground"}`}
+                className={`relative z-10 px-5 py-2 rounded-xl text-sm font-bold transition-colors duration-300 focus:outline-none ${mode === "custom" ? "text-white" : "text-muted hover:text-foreground"}`}
               >
                 🎯 Custom mode
               </button>
@@ -263,198 +276,120 @@ export const InterviewView = () => {
         {topicsError && <p className="text-danger text-center font-bold p-4">{topicsError}</p>}
 
         {!isLoading && !topicsError && (
-          <div className="space-y-8">
+          // ── 2 CỘT: trái = chọn topic (cuộn tự nhiên), phải = tổng quan sticky ──
+          <div className="flex flex-col lg:flex-row gap-6 items-start max-w-[1800px] mx-auto">
+            {/* CỘT TRÁI */}
+            <div className="flex-1 min-w-0 space-y-8">
+              {/* Topics grouped by category (Frontend / Backend / Database / DevOps / ...) */}
+              <div className="space-y-8">
+                {groupedTopics.map((group) => (
+                  <TopicCategorySection
+                    key={group.key}
+                    group={group}
+                    mode={mode}
+                    selectedTopics={selectedTopics}
+                    expandedTopics={expandedTopics}
+                    categorySelections={categorySelections}
+                    onToggleTopic={handleToggleTopic}
+                    onExpandTopic={expandTopic}
+                    onCollapseTopic={collapseTopic}
+                    onClearCategorySelection={clearCategorySelection}
+                    onUpdateCount={handleUpdateCount}
+                    setCountForTopic={setCountForTopic}
+                    getMaxForTopic={getMaxForTopic}
+                    getCountForTopic={getCountForTopic}
+                  />
+                ))}
+              </div>
 
-            {/* CV Recommendations Panel */}
-            {cvResult && (recommended.length > 0 || challenge.length > 0) && (
-              <CVRecommendationsPanel
-                recommended={recommended}
-                challenge={challenge}
-                currentLevel={cvResult.currentLevel ?? "Fresher"}
-                onSelectTopic={handleSelectRecommendedTopic}
-              />
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {topics.map((topic) => {
-                const active = mode === "quick"
-                  ? !!selectedTopics[topic.name]
-                  : expandedTopics.has(topic.name) || categorySelections.has(topic.name);
-
-                return (
-                  <div
-                    key={topic.id}
-                    className="flex flex-col gap-3 p-5 rounded-2xl transition-all duration-300 relative overflow-hidden group cursor-pointer"
-                    onClick={() => {
-                      if (mode === "quick") {
-                        handleToggleTopic(topic.name, topic.questionCount);
-                      } else {
-                        const isCurrentlyExpanded = expandedTopics.has(topic.name);
-                        const hasCategories = categorySelections.has(topic.name);
-
-                        if (isCurrentlyExpanded) {
-                          collapseTopic(topic.name);
-                          clearCategorySelection(topic.name);
-                        } else if (hasCategories) {
-                          collapseTopic(topic.name);
-                          clearCategorySelection(topic.name);
-                        } else {
-                          expandTopic(topic.name);
-                        }
-                      }
-                    }}
-                    style={{
-                      background: active ? "rgba(139,92,246,0.12)" : "var(--surface)",
-                      border: `1px solid ${active ? "rgba(139,92,246,0.5)" : "var(--border)"}`,
-                      transform: active ? "scale(1.02)" : "scale(1)",
-                      boxShadow: active ? "0 10px 25px -5px rgba(139,92,246,0.2)" : "0 4px 6px -1px rgba(0,0,0,0.1)",
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 shrink-0 flex items-center justify-center bg-white/5 rounded-xl border border-white/10 p-1">
-                        <TopicLogo name={topic.name} />
-                      </div>
-                      <div className="flex-1 overflow-hidden">
-                        <p className="font-bold text-[15px] truncate text-foreground group-hover:text-primary transition-colors">{topic.name}</p>
-                        <p className="text-xs text-muted">Có sẵn {topic.questionCount} câu</p>
-                      </div>
-                      <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors ${active ? "bg-primary border-primary" : "border-muted"}`}>
-                        {active && <span className="text-white text-xs font-bold">✓</span>}
-                      </div>
-                    </div>
-
-                    {mode === "quick" && !!selectedTopics[topic.name] && (
-                      <div className="pt-3 border-t border-border mt-1" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-between animate-fadeIn">
-                          <span className="text-sm font-medium text-muted">Số câu chọn:</span>
-                          <input
-                            type="number"
-                            min={1}
-                            max={topic.questionCount}
-                            value={selectedTopics[topic.name]}
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value) || 0;
-                              handleUpdateCount(topic.name, val, topic.questionCount);
-                            }}
-                            className="w-16 px-2 py-1 text-sm font-bold rounded-lg bg-surface-2 border border-border focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-center transition-all"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {mode === "custom" && categorySelections.has(topic.name) && (
-                      <div className="pt-3 border-t border-border mt-1" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-between animate-fadeIn">
-                          <span className="text-sm font-medium text-muted">
-                            Số câu chọn:
-                            <span className="text-xs text-primary ml-1">(max {getMaxForTopic(topic)})</span>
-                          </span>
-                          <input
-                            type="number"
-                            min={1}
-                            max={getMaxForTopic(topic)}
-                            value={getCountForTopic(topic.name, getMaxForTopic(topic))}
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value) || 0;
-                              setCountForTopic(topic.name, Math.min(val, getMaxForTopic(topic)));
-                            }}
-                            className="w-16 px-2 py-1 text-sm font-bold rounded-lg bg-surface-2 border border-border focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-center transition-all"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
             </div>
 
-            {mode === "custom" && expandedTopics.size > 0 && (
-              <div
-                className="rounded-2xl p-5 animate-fadeIn space-y-5"
-                style={{ background: "rgba(139,92,246,0.06)", border: "1px solid rgba(139,92,246,0.25)" }}
-              >
-                <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--primary)" }}>
-                  Chọn danh mục
-                </p>
+            {/* CỘT PHẢI — sticky, luôn nằm trong tầm mắt khi cuộn cột trái */}
+            <div className="w-full lg:w-[420px] shrink-0 lg:sticky lg:top-6 space-y-4">
+              {/* Gợi ý từ CV */}
+              {cvResult && (recommended.length > 0 || challenge.length > 0) && (
+                <CVRecommendationsPanel
+                  recommended={recommended}
+                  challenge={challenge}
+                  currentLevel={cvResult.currentLevel ?? "Fresher"}
+                  onSelectTopic={handleSelectRecommendedTopic}
+                />
+              )}
 
-                {topics
-                  .filter((t) => expandedTopics.has(t.name))
-                  .map((topic) => (
-                    <div key={topic.name} className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 shrink-0">
-                          <TopicLogo name={topic.name} className="w-full h-full object-contain" />
-                        </div>
-                        <p className="text-sm font-bold text-foreground">{topic.name}</p>
-                        <span className="text-xs text-muted">
-                          ({[...(categorySelections.get(topic.name) ?? [])].length} danh mục đã chọn)
-                        </span>
-                      </div>
+              {/* AI chấm điểm theo tiêu chí nào */}
+              <RubricPanel />
 
-                      <div className="flex flex-wrap gap-2 pl-7">
-                        {topic.categories.map((cat) => (
-                          <span
-                            key={cat.name}
-                            onClick={() => toggleCategory(topic.name, cat.name)}
-                            className={`px-3 py-1.5 rounded-full text-xs font-semibold border cursor-pointer transition-all flex items-center gap-1.5
-                              ${categorySelections.get(topic.name)?.has(cat.name)
-                                ? "bg-primary text-white border-primary shadow-sm shadow-primary/30"
-                                : "bg-surface border-border text-foreground hover:border-primary hover:text-primary"
-                              }`}
-                          >
-                            {cat.name}
-                            <span className="opacity-50">({cat.count})</span>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            )}
-
-            <RubricPanel />
-
-            <div className="max-w-2xl mx-auto rounded-3xl p-6 relative overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.1), rgba(99,102,241,0.05))", border: "1px solid rgba(139,92,246,0.3)", boxShadow: "0 20px 40px -15px rgba(139,92,246,0.15)" }}>
-              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-                <div>
-                  <p className="text-muted text-sm font-medium mb-1">Tổng quan thiết lập</p>
-                  <p className="text-foreground text-xl">
-                    Bạn đã chọn <span className="font-extrabold text-primary text-3xl mx-1">
-                      {mode === "quick"
-                        ? totalQuestionsSelected
-                        : [...categorySelections.keys()].reduce((sum: number, topicName: string) => {
-                          const topic = topics.find((t) => t.name === topicName);
-                          if (!topic) return sum;
-                          const max = getMaxForTopic(topic);
-                          return sum + getCountForTopic(topicName, max);
-                        }, 0)
-                      }
-                    </span> câu hỏi
-                  </p>
-                </div>
-                <button
-                  disabled={mode === "quick" ? totalQuestionsSelected === 0 : categorySelections.size === 0}
-                  onClick={() => {
-                    if (mode === "quick") {
-                      startSession();
-                    } else {
-                      const arr = topics
-                        .filter((t) => categorySelections.has(t.name))
-                        .map((t) => {
-                          const max = getMaxForTopic(t);
-                          return {
-                            topic: t.name,
-                            count: getCountForTopic(t.name, max),
-                            categories: [...(categorySelections.get(t.name) ?? [])],
-                          };
-                        });
-                      if (arr.length > 0) setSelections(arr);
-                    }
-                  }}
-                  className="btn-gradient px-10 py-4 rounded-2xl text-base font-extrabold flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale transition-all hover:scale-105 active:scale-95 shadow-xl shadow-primary/30"
+              {/* Chọn danh mục (chỉ hiện ở custom mode, sau khi mở rộng 1 topic) */}
+              {mode === "custom" && expandedTopics.size > 0 && (
+                <div
+                  className="rounded-2xl p-5 animate-fadeIn space-y-5 max-h-[420px] overflow-y-auto"
+                  style={{ background: "rgba(139,92,246,0.06)", border: "1px solid rgba(139,92,246,0.25)" }}
                 >
-                  <span>🚀</span> Bắt đầu thử thách
-                </button>
+                  <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--primary)" }}>
+                    Chọn danh mục
+                  </p>
+
+                  {topics
+                    .filter((t) => expandedTopics.has(t.name))
+                    .map((topic) => (
+                      <div key={topic.name} className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 shrink-0">
+                            <TopicLogo name={topic.name} className="w-full h-full object-contain" />
+                          </div>
+                          <p className="text-sm font-bold text-foreground">{topic.name}</p>
+                          <span className="text-xs text-muted">
+                            ({[...(categorySelections.get(topic.name) ?? [])].length} danh mục đã chọn)
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 pl-7">
+                          {topic.categories.map((cat) => (
+                            <span
+                              key={cat.name}
+                              onClick={() => toggleCategory(topic.name, cat.name)}
+                              className={`px-3 py-1.5 rounded-full text-xs font-semibold border cursor-pointer transition-all flex items-center gap-1.5
+                                ${categorySelections.get(topic.name)?.has(cat.name)
+                                  ? "bg-primary text-white border-primary shadow-sm shadow-primary/30"
+                                  : "bg-surface border-border text-foreground hover:border-primary hover:text-primary"
+                                }`}
+                            >
+                              {cat.name}
+                              <span className="opacity-50">({cat.count})</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+
+              <div
+                className="rounded-3xl p-6 relative overflow-hidden"
+                style={{
+                  background: "linear-gradient(135deg, rgba(139,92,246,0.1), rgba(99,102,241,0.05))",
+                  border: "1px solid rgba(139,92,246,0.3)",
+                  boxShadow: "0 20px 40px -15px rgba(139,92,246,0.15)",
+                }}
+              >
+                <div className="relative z-10 flex flex-col gap-5">
+                  <div>
+                    <p className="text-muted text-sm font-medium mb-1">Tổng quan thiết lập</p>
+                    <p className="text-foreground text-xl">
+                      Bạn đã chọn{" "}
+                      <span className="font-extrabold text-primary text-3xl mx-1">{totalSelectedCount}</span>{" "}
+                      câu hỏi
+                    </p>
+                  </div>
+
+                  <button
+                    disabled={isStartDisabled}
+                    onClick={handleStartSession}
+                    className="btn-gradient w-full px-6 py-4 rounded-2xl text-base font-extrabold flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale transition-all hover:scale-105 active:scale-95 shadow-xl shadow-primary/30"
+                  >
+                    <span>🚀</span> Bắt đầu thử thách
+                  </button>
+                </div>
               </div>
             </div>
           </div>

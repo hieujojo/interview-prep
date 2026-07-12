@@ -115,38 +115,40 @@ export function CVRecommendationsPanel({
     >
       {/* ── Header ── */}
       <button
-        id="cv-recommendations-toggle"
-        className="w-full flex items-center justify-between px-5 py-4 text-left transition-colors hover:bg-white/5"
-        onClick={() => setCollapsed((v) => !v)}
-      >
-        <div className="flex items-center gap-3">
-          <span className="text-xl">🎯</span>
-          <div>
-            <p className="text-sm font-bold text-foreground">Gợi ý từ CV của bạn</p>
-            <p className="text-xs text-muted mt-0.5">
-              Nhấn vào topic để chọn ngay • Chỉ là gợi ý, bạn vẫn tự do lựa chọn
-            </p>
-          </div>
-          {/* Level badge */}
-          <span
-            className="px-2.5 py-0.5 rounded-full text-xs font-bold border"
-            style={{
-              color: levelStyle.color,
-              background: levelStyle.bg,
-              borderColor: levelStyle.border,
-            }}
-          >
-            {currentLevel}
-          </span>
-        </div>
+  id="cv-recommendations-toggle"
+  className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-white/5"
+  onClick={() => setCollapsed((v) => !v)}
+>
+  <div className="flex items-center gap-3 min-w-0">
+    <span className="text-xl shrink-0">🎯</span>
+    <div className="min-w-0">
+      <p className="text-sm font-bold text-foreground">Gợi ý từ CV của bạn</p>
+      <p className="text-xs text-muted mt-0.5">
+        Nhấn vào topic để chọn ngay • Chỉ là gợi ý, bạn vẫn tự do lựa chọn
+      </p>
+    </div>
+  </div>
 
-        <span
-          className="text-muted text-sm transition-transform duration-200 shrink-0"
-          style={{ transform: collapsed ? "rotate(0deg)" : "rotate(180deg)" }}
-        >
-          ▼
-        </span>
-      </button>
+  <div className="flex items-center gap-3 shrink-0">
+    <span
+      className="px-2.5 py-0.5 rounded-full text-xs font-bold border"
+      style={{
+        color: levelStyle.color,
+        background: levelStyle.bg,
+        borderColor: levelStyle.border,
+      }}
+    >
+      {currentLevel}
+    </span>
+
+    <span
+      className="text-muted text-sm transition-transform duration-200"
+      style={{ transform: collapsed ? "rotate(0deg)" : "rotate(180deg)" }}
+    >
+      ▼
+    </span>
+  </div>
+</button>
 
       {/* ── Body ── */}
       {!collapsed && (
