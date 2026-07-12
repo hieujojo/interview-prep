@@ -1,5 +1,5 @@
-<type>(<scope>): <subject>
-
+# <type>(<scope>): <subject>
+#
 # Type must be one of: feat | fix | refactor | chore | opt | docs | test
 # Scope: interview | exercises | profile | jd-analyzer | documents |
 #        achievements | history | notes | cv-analysis | email | auth | shared
