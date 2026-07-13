@@ -1,0 +1,13 @@
+# <type>(<scope>): <subject>
+#
+# Type must be one of: feat | fix | refactor | chore | opt | docs | test
+# Scope: interview | exercises | profile | jd-analyzer | documents |
+#        achievements | history | notes | cv-analysis | email | auth | shared
+#        (scope is optional for repo-wide chore commits)
+# Subject: lowercase, imperative, no trailing period, under 72 chars
+#
+# Body (required for feat/fix): list the main files changed and WHY —
+# the diff already shows WHAT changed.
+#
+# Footer (if this closes an issue):
+# Closes #<issue-number>

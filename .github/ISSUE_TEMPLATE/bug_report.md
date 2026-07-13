@@ -11,6 +11,10 @@ assignees: ''
 > React/Hooks best practices, Supabase/DB rules, and the Git branching workflow (branch naming,
 > `Closes #<issue-number>` in commit message, PRs must target `release` — never `main`).
 
+> 📝 **Formatting tip:** Please use proper Markdown when filling out this template — code blocks
+> (`` ``` ``) for code/logs/SQL, `` `inline code` `` for file names and variables, **bold** for
+> emphasis, and checklists for lists. Well-formatted issues are easier to read and triage.
+
 ## Description
 <!-- What's broken? Describe the observed behavior and, if known, when/where it happens. -->
 
