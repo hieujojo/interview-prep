@@ -2,30 +2,44 @@
 
 import type { GroupableTopic } from "@/hooks/useTopicGrouping";
 
-function getTopicLogo(topicName: string) {
+function getTopicLogo(topicName: string): { src: string; dark?: boolean; large?: boolean; wide?: boolean } {
   const name = topicName.toLowerCase();
-  if (name.includes("react native")) return "/logo/react-native-removebg-preview.png";
-  if (name.includes("react")) return "/logo/reactjs.png";
-  if (name.includes("html")) return "/logo/HTML5_logo_resized.png";
-  if (name.includes("css") || name.includes("tailwind")) return "/logo/css.png";
-  if (name.includes("typescript")) return "/logo/typescript-logo-png_seeklogo-526730.png";
-  if (name.includes("javascript")) return "/logo/javascript.png";
-  if (name.includes("node")) return "/logo/nodejs-new.png";
-  if (name.includes("next")) return "/logo/nextjs-new.png";
-  if (name.includes("mongo")) return "/logo/MongoDB-Emblem-2048x1280-removebg-preview.png";
-  if (name.includes("docker")) return "/logo/docker-mark-ocean-blue-removebg-preview.png";
-  if (name.includes("kỹ năng mềm") || name.includes("soft skill")) return "/logo/soft-skill.png";
-  if (name.includes("sql")) return "/logo/sql.png";
-  if (name.includes("git")) return "/logo/git5-removebg-preview.png";
-  if (name.includes(".net") || name.includes("c#")) return "/logo/dotnet_.png";
-  return "📝";
+  if (name.includes("html")) return { src: "/logo/HTML5_logo_resized.png" };
+  if (name.includes("css") || name.includes("tailwind")) return { src: "/logo/css.png" };
+  if (name.includes("javascript")) return { src: "/logo/javascript.png" };
+  if (name.includes("typescript")) return { src: "/logo/typescript-logo-png_seeklogo-526730.png" };
+  if (name.includes("react native")) return { src: "/logo/react-native-removebg-preview.png" };
+  if (name.includes("react")) return { src: "/logo/reactjs.png" };
+  if (name.includes("node")) return { src: "/logo/nodejs.png" };
+  if (name.includes("next")) return { src: "/logo/nextjs.png", dark: true };
+  if (name.includes("mongo")) return { src: "/logo/MongoDB-Emblem-2048x1280-removebg-preview.png" };
+  if (name.includes("docker")) return { src: "/logo/docker-mark-ocean-blue-removebg-preview.png", wide: true };
+  if (name.includes("kỹ năng mềm") || name.includes("soft skill")) return { src: "/logo/soft-skills.png", dark: true, wide: true };
+  if (name.includes("sql")) return { src: "/logo/mysql.png" };
+  if (name.includes("git")) return { src: "/logo/git5-removebg-preview.png", wide: true };
+  if (name.includes("c#")) return { src: "/logo/c_sharp_logo.png" };
+  if (name.includes(".net")) return { src: "/logo/dotnet.png", large: true, wide: true };
+  if (name.includes("design system") || name.includes("system design") || name.includes("kiến trúc")) return { src: "/logo/design-system.png", large: true, wide: true };
+  if (name.includes("dsa") || name.includes("thuật toán") || name.includes("cấu trúc dữ liệu")) return { src: "/logo/dsa.png", large: true, wide: true };
+  return { src: "📝" };
+}
+
+/** Export để TopicCategorySection biết topic nào cần card rộng hơn */
+export function isWideTopic(topicName: string): boolean {
+  return !!getTopicLogo(topicName).wide;
 }
 
 export function TopicLogo({ name, className }: { name: string; className?: string }) {
   const logo = getTopicLogo(name);
-  return logo.startsWith("/")
-    ? <img src={logo} alt={name} className={className ?? "w-full h-full object-contain"} />
-    : <span className="text-2xl">{logo}</span>;
+
+  if (!logo.src.startsWith("/")) {
+    return <span className="text-4xl">{logo.src}</span>;
+  }
+
+  const baseClass = className ?? (logo.large ? "w-14 h-14 object-contain" : "w-12 h-12 object-contain");
+  const bgClass = logo.dark ? " bg-white p-1.5 rounded-xl shadow-sm" : "";
+
+  return <img src={logo.src} alt={name} className={baseClass + bgClass} />;
 }
 
 interface TopicCardProps<T extends GroupableTopic> {
@@ -33,6 +47,7 @@ interface TopicCardProps<T extends GroupableTopic> {
   mode: "quick" | "custom";
   active: boolean;
   onCardClick: () => void;
+  className?: string;
 
   // quick mode
   isSelectedQuick: boolean;
@@ -58,10 +73,11 @@ export function TopicCard<T extends GroupableTopic>({
   customMax,
   customCount,
   onCustomCountChange,
+  className,
 }: TopicCardProps<T>) {
   return (
     <div
-      className="flex flex-col gap-3 p-4 rounded-2xl transition-all duration-300 relative overflow-hidden group cursor-pointer"
+      className={`flex flex-col gap-3 p-4 rounded-2xl transition-all duration-300 relative overflow-hidden group cursor-pointer ${className ?? ""}`}
       onClick={onCardClick}
       style={{
         background: active ? "rgba(139,92,246,0.12)" : "var(--surface)",
@@ -70,22 +86,24 @@ export function TopicCard<T extends GroupableTopic>({
         boxShadow: active ? "0 10px 25px -5px rgba(139,92,246,0.2)" : "0 4px 6px -1px rgba(0,0,0,0.1)",
       }}
     >
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 shrink-0 flex items-center justify-center">
+      <div className="flex items-center gap-4">
+        <div className="shrink-0 flex items-center justify-center min-w-[48px] min-h-[48px]">
           <TopicLogo name={topic.name} />
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-[15px] leading-snug break-words text-foreground group-hover:text-primary transition-colors">
+          <p
+            className="font-bold text-[15px] leading-snug break-words text-foreground group-hover:text-primary transition-colors"
+            title={topic.name}
+          >
             {topic.name}
           </p>
           <p className="text-xs text-muted mt-1">Có sẵn {topic.questionCount} câu</p>
         </div>
 
         <div
-          className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-            active ? "bg-primary border-primary" : "border-muted"
-          }`}
+          className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors ${active ? "bg-primary border-primary" : "border-muted"
+            }`}
         >
           {active && <span className="text-white text-xs font-bold">✓</span>}
         </div>

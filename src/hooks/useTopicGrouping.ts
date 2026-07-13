@@ -29,6 +29,51 @@ const GROUP_CONFIG: Record<TopicGroupKey, { label: string; icon: string; order: 
 };
 
 /**
+ * Thứ tự ưu tiên hiển thị trong từng group.
+ * Topic match keyword nào thì dùng order đó. Số nhỏ hơn = hiển thị trước.
+ * Lưu ý: "react native" phải kiểm tra TRƯỚC "react" để không bị nhầm.
+ */
+const TOPIC_ORDER: Array<{ keyword: string; order: number }> = [
+  // Frontend
+  { keyword: "html", order: 10 },
+  { keyword: "css", order: 20 },
+  { keyword: "tailwind", order: 25 },
+  { keyword: "javascript", order: 30 },
+  { keyword: "typescript", order: 40 },
+  { keyword: "react native", order: 55 },
+  { keyword: "react", order: 50 },
+  { keyword: "next", order: 60 },
+  { keyword: "vue", order: 70 },
+  { keyword: "angular", order: 80 },
+  // Backend
+  { keyword: "c#", order: 10 },
+  { keyword: ".net", order: 20 },
+  { keyword: "node", order: 30 },
+  { keyword: "java", order: 40 },
+  { keyword: "python", order: 50 },
+  { keyword: "golang", order: 60 },
+  { keyword: "php", order: 70 },
+  // Database
+  { keyword: "sql", order: 10 },
+  { keyword: "mongo", order: 20 },
+  { keyword: "redis", order: 30 },
+  // DevOps
+  { keyword: "git", order: 10 },
+  { keyword: "docker", order: 20 },
+  { keyword: "kubernetes", order: 30 },
+  { keyword: "ci/cd", order: 40 },
+  { keyword: "aws", order: 50 },
+];
+
+function getTopicOrder(topicName: string): number {
+  const name = topicName.toLowerCase();
+  for (const { keyword, order } of TOPIC_ORDER) {
+    if (name.includes(keyword)) return order;
+  }
+  return 999;
+}
+
+/**
  * Same matching philosophy as getTopicLogo() in InterviewView —
  * add new keywords here whenever a new topic/language is added
  * to the question bank, no UI change needed.
@@ -106,7 +151,7 @@ export function useTopicGrouping<T extends GroupableTopic>(topics: T[]): TopicGr
         key,
         label: GROUP_CONFIG[key].label,
         icon: GROUP_CONFIG[key].icon,
-        topics: groupTopics,
+        topics: [...groupTopics].sort((a, b) => getTopicOrder(a.name) - getTopicOrder(b.name)),
       }))
       .sort((a, b) => GROUP_CONFIG[a.key].order - GROUP_CONFIG[b.key].order);
   }, [topics]);

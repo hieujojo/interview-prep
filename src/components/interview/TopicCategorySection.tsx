@@ -1,6 +1,6 @@
 "use client";
 
-import { TopicCard } from "./TopicCard";
+import { TopicCard, isWideTopic } from "./TopicCard";
 import type { GroupableTopic, TopicGroup } from "@/hooks/useTopicGrouping";
 
 interface TopicCategorySectionProps<T extends GroupableTopic> {
@@ -45,15 +45,8 @@ export function TopicCategorySection<T extends GroupableTopic>({
         <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
       </div>
 
-      {/*
-        auto-fill + minmax thay vì repeat(N, 1fr): card giữ kích thước cố định
-        (240–280px), số cột tự co giãn theo bề rộng cột trái. Khi hàng cuối
-        không lấp đầy, phần thừa để trống thay vì kéo dãn từng card ra to.
-      */}
-      <div
-        className="grid gap-4"
-        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(240px, 280px))" }}
-      >
+      {/* flex-wrap: card co giãn theo độ dài title, wide topics tự động rộng hơn */}
+      <div className="flex flex-wrap gap-4">
         {group.topics.map((topic) => {
           const active =
             mode === "quick"
@@ -77,21 +70,28 @@ export function TopicCategorySection<T extends GroupableTopic>({
             }
           };
 
+          // Wide topics: width tỷ lệ với độ dài tên, narrow topics: 240px cố định
+          const cardWidth = isWideTopic(topic.name)
+            ? Math.max(260, Math.min(topic.name.length * 9 + 80, 480))
+            : 240;
+
           return (
-            <TopicCard
-              key={topic.id}
-              topic={topic}
-              mode={mode}
-              active={active}
-              onCardClick={handleCardClick}
-              isSelectedQuick={!!selectedTopics[topic.name]}
-              quickCount={selectedTopics[topic.name] ?? 0}
-              onQuickCountChange={(val) => onUpdateCount(topic.name, val, topic.questionCount)}
-              isCategorySelectedCustom={categorySelections.has(topic.name)}
-              customMax={customMax}
-              customCount={getCountForTopic(topic.name, customMax)}
-              onCustomCountChange={(val) => setCountForTopic(topic.name, Math.min(val, customMax))}
-            />
+            <div key={topic.id} style={{ width: cardWidth }}>
+              <TopicCard
+                className="h-full w-full"
+                topic={topic}
+                mode={mode}
+                active={active}
+                onCardClick={handleCardClick}
+                isSelectedQuick={!!selectedTopics[topic.name]}
+                quickCount={selectedTopics[topic.name] ?? 0}
+                onQuickCountChange={(val) => onUpdateCount(topic.name, val, topic.questionCount)}
+                isCategorySelectedCustom={categorySelections.has(topic.name)}
+                customMax={customMax}
+                customCount={getCountForTopic(topic.name, customMax)}
+                onCustomCountChange={(val) => setCountForTopic(topic.name, Math.min(val, customMax))}
+              />
+            </div>
           );
         })}
       </div>
