@@ -11,6 +11,10 @@ assignees: ''
 > React/Hooks best practices, Supabase/DB rules, and the Git branching workflow. PRs that don't follow
 > `rule.md` will be asked to be revised.
 
+> 📝 **Formatting tip:** Please use proper Markdown when filling out this template — code blocks
+> (`` ``` ``) for code/examples, `` `inline code` `` for file names and variables, **bold** for
+> emphasis, and checklists for requirements. Well-formatted issues are easier to read and triage.
+
 ## Summary
 <!-- One or two sentences describing what this feature does and why it's needed. -->
 
