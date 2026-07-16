@@ -1,6 +1,6 @@
 "use client";
 
-import type { DashboardData } from "@/hooks/useDashboardData";
+import { useDashboardData } from "@/hooks/useDashboardData";
 import { useAchievement } from "@/hooks/useAchievement";
 import {
   Radar,
@@ -11,11 +11,9 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-type Props = {
-  data: DashboardData;
-};
+export default function AchievementsView() {
+  const { data, isLoading, error } = useDashboardData();
 
-export default function AchievementsView({ data }: Props) {
   const {
     currentRank,
     nextRank,
@@ -24,6 +22,10 @@ export default function AchievementsView({ data }: Props) {
     lockedAchievements,
     radarData,
   } = useAchievement(data);
+
+  if (isLoading) return <p className="text-muted">Đang tải thành tựu...</p>;
+  if (error) return <p className="text-danger">Lỗi: {error}</p>;
+  if (!data) return null;
 
   return (
     <div className="space-y-8 animate-fadeInUp">
