@@ -1,11 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { DashboardData } from "@/hooks/useDashboardData";
-
-type Props = {
-  data: DashboardData;
-};
+import { useDashboardData } from "@/hooks/useDashboardData";
 
 const MOTIVATIONAL_QUOTES = [
   "Mỗi câu hỏi bạn luyện hôm nay là một bước gần hơn đến offer mơ ước! 🌟",
@@ -20,7 +16,13 @@ const TYPE_INFO: Record<string, { label: string; icon: string; color: string }> 
   jd_analysis: { label: "Phân tích JD", icon: "📋", color: "var(--success)" },
 };
 
-export default function DashboardView({ data }: Props) {
+export default function DashboardView() {
+  const { data, isLoading, error } = useDashboardData();
+
+  if (isLoading) return <p className="text-muted">Đang tải dashboard...</p>;
+  if (error) return <p className="text-danger">Lỗi: {error}</p>;
+  if (!data) return null;
+
   const quote = MOTIVATIONAL_QUOTES[new Date().getDay() % MOTIVATIONAL_QUOTES.length];
   const scoreColor =
     data.averageScore === null
