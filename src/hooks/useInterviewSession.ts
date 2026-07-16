@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAIProviderStore } from "@/stores/aiProviderStore";
 import { supabase } from "@/lib/supabase";
 import type { AIReviewResult } from "@/hooks/useAIReview";
 import type { InProgressNote } from '@/types/note';
 import { useRouter } from "next/navigation";
+import { dashboardQueryKey } from "@/hooks/useDashboardData";
 
 export type TopicSelection = { topic: string; count: number; categories?: string[] };
 export type SessionQuestion = { content: string; category: string };
@@ -65,8 +67,8 @@ export function useInterviewSession(reviewFn: ReviewFn) {
   const [selectedTopics, setSelectedTopics] = useState<Record<string, number>>({});
 
   const { currentProvider, setFallbackActive, setAIDisabled } = useAIProviderStore();
-
   const router = useRouter();
+  const queryClient = useQueryClient();
   const totalQuestionsSelected = Object.values(selectedTopics).reduce((a, b) => a + b, 0);
 
   const handleToggleTopic = (topicName: string, maxCount: number) => {
@@ -413,7 +415,10 @@ export function useInterviewSession(reviewFn: ReviewFn) {
           .from("answers")
           .insert(answersToInsert);
 
-        setIsSaved(true);
+         setIsSaved(true);
+        // Báo cho Dashboard (đang dùng useQuery với cùng queryKey) biết dữ liệu đã cũ,
+        // ép fetch lại ngay lần tới thay vì đợi staleTime — fix trực tiếp bug issue #75.
+        queryClient.invalidateQueries({ queryKey: dashboardQueryKey });
         const notesToSave = inProgressNotes.filter(n => n.noteText.trim().length > 0);
         if (notesToSave.length > 0) {
           const notesPayload = notesToSave.map(n => ({

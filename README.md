@@ -6,6 +6,10 @@ Nền tảng luyện phỏng vấn kỹ thuật toàn diện, mọi tính năng 
 
 ## ✨ Tính năng
 
+### 📊 Dashboard (`/`)
+- Tổng quan tiến độ luyện tập: streak, tổng số buổi, điểm trung bình, topic đã cover, danh sách buổi gần nhất
+- Toàn bộ số liệu được tính trực tiếp từ dữ liệu gốc (`sessions`, `answers`) qua TanStack Query, tự động làm mới ngay sau khi hoàn thành 1 buổi phỏng vấn mới — không còn độ trễ giữa các phần trên Dashboard
+
 ### 🔐 Xác thực & Cài đặt
 - Đăng nhập qua Google OAuth 2.0, dữ liệu cô lập theo từng tài khoản (RLS)
 - Hiển thị avatar + tên trên Navbar, tự động redirect nếu chưa đăng nhập
@@ -92,6 +96,7 @@ Nền tảng luyện phỏng vấn kỹ thuật toàn diện, mọi tính năng 
 | AI           | Groq API – Llama-3.3-70b-versatile |
 | AI           | Google Gemini API                  |
 | State        | Zustand                            |
+| Data Fetching | TanStack Query (React Query) |
 | Database | Supabase (PostgreSQL + RLS) |
 | Auth | Supabase Auth (Google OAuth 2.0) |
 | Editor | Monaco Editor |
