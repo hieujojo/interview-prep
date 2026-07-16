@@ -4,6 +4,7 @@
 
 1. **Database Persistence**: Mọi tính năng mới liên quan đến dữ liệu người dùng (lịch sử, kết quả, settings, lỗi sai, v.v...) BẮT BUỘC phải được lưu vào cơ sở dữ liệu Supabase.
 2. **Page.tsx Architecture**: Toàn bộ file `page.tsx` trong thư mục `app/` CHỈ ĐƯỢC PHÉP chứa import. KHÔNG đặt UI hay logic trực tiếp vào `page.tsx`. UI phải được đặt trong thư mục `components/`, logic phải được đặt trong `hooks/`.
+Khi `page.tsx` chứa logic hoặc UI vi phạm, đẩy logic vào hook đã có sẵn (hoặc hook liên quan trong hooks/) và đẩy UI vào component đã có sẵn (trong components/) tương ứng với tính năng đó — KHÔNG tạo file mới. Nghĩa là tận dụng lại useXxx.ts và XxxView.tsx đang tồn tại, sửa trực tiếp trong đó.
 3. **API Route per Feature**: Bất cứ khi nào tạo table mới hoặc tính năng mới có gọi AI/external service, BẮT BUỘC tạo kèm file `app/api/[tên-chức-năng]/route.ts` tương ứng.
 4. **Update README**: Bất cứ tính năng mới nào được build xong, BẮT BUỘC phải cập nhật mô tả tính năng đó vào file `README.md` (mục "✨ Tính năng") ngay sau khi hoàn thành.
 
