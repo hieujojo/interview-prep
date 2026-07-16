@@ -34,7 +34,10 @@ Khi `page.tsx` chứa logic hoặc UI vi phạm, đẩy logic vào hook đã có
 5. **Dependency Array (eslint)**
    - TUYỆT ĐỐI KHÔNG disable `react-hooks/exhaustive-deps` (kể cả dùng `eslint-disable-line`) nếu không có lý do chính đáng.
    - Mọi dependency bị bỏ qua **BẮT BUỘC phải có comment giải thích rõ lý do** ở dòng ngay phía trước (ví dụ: intentional closure, tránh re-render loop từ object mới, v.v...).
-
+   
+6. **Data Fetching**
+   - Mọi tính năng fetch dữ liệu từ Supabase để hiển thị (không phải mutation 1 lần) BẮT BUỘC dùng `useQuery` (TanStack Query) thay vì tự viết `useState` + `useEffect` + `try/catch` thủ công.
+   - Sau mọi mutation (insert/update/delete) làm thay đổi dữ liệu mà nơi khác đang query, BẮT BUỘC gọi `queryClient.invalidateQueries` với đúng `queryKey` liên quan, không dựa vào `staleTime` để tự đồng bộ.
 ---
 
 ## 🗄️ 3. Database & Supabase Rules
@@ -86,7 +89,7 @@ Khi `page.tsx` chứa logic hoặc UI vi phạm, đẩy logic vào hook đã có
 - `jd_analyses` ✅ RLS (Đã ALTER `session_id` → nullable; `questions_json` chứa levelReason, focusSkills, questions, exercises; Đã thêm `user_id UUID`)
 - `sessions` ✅ RLS (Lưu interview sessions: `type`, `topic`, `user_id UUID`, `created_at`; INSERT + SELECT policy cho authenticated user)
 - `topics` ✅ RLS (Public read-only policy)
-- `user_stats` ✅ RLS (Đã thêm cột `user_id UUID`, đã thêm `preferred_provider TEXT DEFAULT 'groq'`)
+- `user_settings` ✅ RLS (Tạo lại thay thế `user_stats` — do sự cố DROP TABLE nhầm khi refactor Dashboard sang React Query, dữ liệu `preferred_provider` cũ đã mất. Chỉ còn `user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE`, `preferred_provider TEXT DEFAULT 'groq'`. Các cột thống kê Dashboard cũ (total_sessions, streak_days, average_score, topics_covered, total_score, last_session_date, updated_at) đã bỏ hẳn — Dashboard giờ tính trực tiếp từ `sessions`/`answers` qua TanStack Query, không còn cache ở DB)
 - `notes` ✅ RLS (question_index, question_content, note_text per session).
 - `achivement` ✅ RLS
 - `documents` ✅ RLS (Lưu metadata tài liệu học tập: title, file_url (Storage path), file_name, file_type, topic_id FK, category_id FK, difficulty, is_public; private bucket `documents` trên Supabase Storage)

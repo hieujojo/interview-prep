@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import QueryProvider from "@/components/providers/QueryProvider";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -28,11 +29,13 @@ export default function RootLayout({
       suppressHydrationWarning
       data-scroll-behavior="smooth"
     >
-      <body className="min-h-full flex flex-col">
-        <Navbar />
-        <main className="flex-1 w-full px-4 py-8">
-          {children}
-        </main>
+     <body className="min-h-full flex flex-col">
+        <QueryProvider>
+          <Navbar />
+          <main className="flex-1 w-full px-4 py-8">
+            {children}
+          </main>
+        </QueryProvider>
       </body>
     </html>
   );

@@ -17,10 +17,10 @@ export async function GET() {
   }
 
   const { data } = await supabase
-    .from("user_stats")
+    .from("user_settings")
     .select("preferred_provider")
     .eq("user_id", user.id)
-    .single();
+    .maybeSingle();
 
   return NextResponse.json({ provider: data?.preferred_provider ?? "groq" });
 }
@@ -43,9 +43,11 @@ export async function PUT(req: NextRequest) {
   }
 
   const { error } = await supabase
-    .from("user_stats")
-    .update({ preferred_provider: provider })
-    .eq("user_id", user.id);
+    .from("user_settings")
+    .upsert(
+      { user_id: user.id, preferred_provider: provider },
+      { onConflict: "user_id" }
+    );
 
   if (error) {
     return NextResponse.json({ error: "Khong cap nhat duoc." }, { status: 500 });
