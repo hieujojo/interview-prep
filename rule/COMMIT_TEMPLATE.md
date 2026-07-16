@@ -34,7 +34,8 @@ Scope should match the route/feature area being touched, based on this
 project's page structure:
 
 `interview` · `exercises` · `profile` · `jd-analyzer` · `documents` ·
-`achievements` · `history` · `notes` · `cv-analysis` · `email` · `auth`
+`achievements` · `history` · `notes` · `cv-analysis` · `email` · `auth` ·
+`dashboard`
 
 Use `shared` for changes that cut across multiple routes (e.g. a shared
 component, the `useAIProviderStore`, or the Supabase client itself).
